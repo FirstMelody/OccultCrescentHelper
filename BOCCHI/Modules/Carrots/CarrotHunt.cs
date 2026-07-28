@@ -64,7 +64,7 @@ public class CarrotHunt(CarrotsModule module) : Hunter(module)
 
                 var gameObject = (GameObject*)(void*)chest.Address;
                 TargetSystem.Instance()->InteractWithObject(gameObject);
-                return Svc.ClientState.LocalPlayer?.IsCasting == true;
+                return Svc.Objects.LocalPlayer?.IsCasting == true;
             })
             .WaitToCast();
     }

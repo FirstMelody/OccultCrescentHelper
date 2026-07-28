@@ -50,7 +50,7 @@ public class FatesModule : Module
         return true;
     }
 
-    public override void OnTerritoryChanged(ushort id)
+    public override void OnTerritoryChanged(uint id)
     {
         fates.Clear();
     }

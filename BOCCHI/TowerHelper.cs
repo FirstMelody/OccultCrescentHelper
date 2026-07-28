@@ -49,7 +49,7 @@ internal static class TowerHelper
             return -1;
         }
 
-        return Svc.Objects.Count(o => o.ObjectKind == ObjectKind.Player && IsInTowerZone(type, o.Position));
+        return Svc.Objects.Count(o => o.ObjectKind == ObjectKind.Pc && IsInTowerZone(type, o.Position));
     }
 
     public static int GetPlayersNearTowerZone(TowerType type)
@@ -59,6 +59,6 @@ internal static class TowerHelper
             return -1;
         }
 
-        return Svc.Objects.Count(o => o.ObjectKind == ObjectKind.Player && IsNearTowerZone(type, o.Position));
+        return Svc.Objects.Count(o => o.ObjectKind == ObjectKind.Pc && IsNearTowerZone(type, o.Position));
     }
 }

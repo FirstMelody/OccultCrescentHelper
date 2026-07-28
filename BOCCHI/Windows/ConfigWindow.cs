@@ -1,7 +1,9 @@
 ﻿using System.Linq;
 using System.Numerics;
 using BOCCHI.Modules;
+using BOCCHI.Modules.Automator;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Ocelot.Modules;
 using Ocelot.Windows;
@@ -58,6 +60,12 @@ public class ConfigWindow(Plugin primaryPlugin, Config config) : OcelotConfigWin
         using (ImRaii.Child("##RightPanel", new Vector2(0, 0), true))
         {
             selectedConfigModule!.RenderConfigUi(context);
+
+            if (selectedConfigModule is AutomatorModule automator)
+            {
+                ImGui.Separator();
+                automator.panel.DrawEventControls(automator);
+            }
         }
     }
 }

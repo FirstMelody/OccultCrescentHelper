@@ -3,13 +3,35 @@ using System.Numerics;
 using BOCCHI.Data;
 using BOCCHI.Enums;
 using Dalamud.Game.ClientState.Fates;
-using Ocelot.Modules;
 
 namespace BOCCHI.Modules.Fates;
 
-public class Fate(IFate fate)
+public class Fate
 {
-    public readonly EventData Data = EventData.Fates[fate.FateId];
+    private readonly IFate fate;
+
+    public readonly EventData Data;
+
+    public Fate(IFate fate)
+    {
+        this.fate = fate;
+
+        var id = GetFateId(fate);
+        if (EventData.Fates.TryGetValue(id, out var knownData))
+        {
+            Data = knownData;
+            return;
+        }
+
+        Data = new EventData
+        {
+            Id = id,
+            Type = EventType.Fate,
+            InternalName = GetFateName(fate),
+            StartPosition = GetFatePosition(fate),
+            Radius = GetFateRadius(fate),
+        };
+    }
 
     public uint Id
     {
@@ -88,7 +110,7 @@ public class Fate(IFate fate)
         }
     }
 
-    public void Update(UpdateContext context)
+    public void Update()
     {
         if (CurrentProgress <= 0)
         {
@@ -109,5 +131,53 @@ public class Fate(IFate fate)
     public Aethernet GetAethernet()
     {
         return Data.Aethernet ?? ZoneData.GetClosestAethernetShard(StartPosition);
+    }
+
+    private static uint GetFateId(IFate fate)
+    {
+        try
+        {
+            return fate.FateId;
+        }
+        catch (AccessViolationException)
+        {
+            return 0;
+        }
+    }
+
+    private static string GetFateName(IFate fate)
+    {
+        try
+        {
+            return fate.Name.ToString();
+        }
+        catch (AccessViolationException)
+        {
+            return "Unknown Fate";
+        }
+    }
+
+    private static Vector3 GetFatePosition(IFate fate)
+    {
+        try
+        {
+            return fate.Position;
+        }
+        catch (AccessViolationException)
+        {
+            return Vector3.Zero;
+        }
+    }
+
+    private static float GetFateRadius(IFate fate)
+    {
+        try
+        {
+            return fate.Radius;
+        }
+        catch (AccessViolationException)
+        {
+            return 0f;
+        }
     }
 }

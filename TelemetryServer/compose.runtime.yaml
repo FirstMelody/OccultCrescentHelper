@@ -1,0 +1,15 @@
+services:
+  bocchi-telemetry:
+    image: mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim
+    container_name: bocchi-telemetry
+    restart: unless-stopped
+    working_dir: /app
+    command: ["dotnet", "BOCCHI.TelemetryServer.dll"]
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      BOCCHI_DATA_DIR: "/data"
+    ports:
+      - "127.0.0.1:8787:8080"
+    volumes:
+      - ./publish:/app:ro
+      - ./data:/data

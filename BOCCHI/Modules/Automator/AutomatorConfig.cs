@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BOCCHI.Data;
 using Ocelot.Config.Attributes;
 using Ocelot.Modules;
 
@@ -6,6 +7,16 @@ namespace BOCCHI.Modules.Automator;
 
 public class AutomatorConfig : ModuleConfig
 {
+    // Runtime-discovered North chapter events. Keys are "territoryId:eventId"
+    // because DynamicEvent IDs are not guaranteed to be unique across content.
+    public Dictionary<string, string> RecordedCriticalEncounterNames { get; set; } = [];
+
+    public Dictionary<string, bool> RecordedCriticalEncounterEnabled { get; set; } = [];
+
+    public Dictionary<string, string> RecordedFateNames { get; set; } = [];
+
+    public Dictionary<string, bool> RecordedFateEnabled { get; set; } = [];
+
     [Checkbox]
     [Illegal]
     [RequiredPlugin("Lifestream", "vnavmesh")]
@@ -419,5 +430,38 @@ public class AutomatorConfig : ModuleConfig
             { 1976, ShouldDoPersistentPots },
             { 1977, ShouldDoPleadingPots },
         };
+    }
+
+    public bool IsCriticalEncounterEnabled(uint territoryId, uint eventId)
+    {
+        if (territoryId == ZoneData.SOUTHHORN
+            && CriticalEncountersMap.TryGetValue(eventId, out var configured))
+        {
+            return configured;
+        }
+
+        return !RecordedCriticalEncounterEnabled.TryGetValue(
+            GetEventKey(territoryId, eventId),
+            out var enabled
+        ) || enabled;
+    }
+
+    public bool IsFateEnabled(uint territoryId, uint eventId)
+    {
+        if (territoryId == ZoneData.SOUTHHORN
+            && FatesMap.TryGetValue(eventId, out var configured))
+        {
+            return configured;
+        }
+
+        return !RecordedFateEnabled.TryGetValue(
+            GetEventKey(territoryId, eventId),
+            out var enabled
+        ) || enabled;
+    }
+
+    public static string GetEventKey(uint territoryId, uint eventId)
+    {
+        return $"{territoryId}:{eventId}";
     }
 }

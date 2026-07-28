@@ -1,12 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using BOCCHI.Data;
-using BOCCHI.Data.Traps;
-using BOCCHI.Enums;
 using BOCCHI.Modules.CriticalEncounters;
+using BOCCHI.Modules.DevMap;
+using Dalamud.Interface.Colors;
+using ECommons.DalamudServices;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
 using Ocelot.Modules;
@@ -28,9 +28,16 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
         get => true;
     }
 
+    public override bool IsEnabled
+    {
+        get => Config.IsPropertyEnabled(nameof(Config.Enabled));
+    }
+
     public TowerRun TowerRun { get; private set; } = new("");
 
     private readonly Panel panel = new();
+    private bool wasInForkedTower;
+    private uint activeTowerTerritoryId;
 
     public override void PostInitialize()
     {
@@ -46,50 +53,102 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
 
     public override void Render(RenderContext context)
     {
-        if (!ZoneData.IsInOccultCrescent())
+        if (!EnsureRunLifecycle())
         {
             return;
         }
 
-#if RELEASE
-        if (!ZoneData.IsInForkedTower())
+        if (Config.DrawPotentialTrapPositions)
         {
-            return;
+            DrawPotentialTraps(context);
         }
-#endif
-
-        if (!Config.DrawPotentialTrapPositions)
-        {
-            return;
-        }
-
-        var traps = GetTrapsToRender().ToList();
-        foreach (var trap in traps)
-        {
-            if (Config.DrawSimpleMode || Config.DrawOutlineForComplexMode)
-            {
-                context.DrawCircle(trap.Position, 4f, GetTrapColor(trap.Type));
-            }
-
-            if (!Config.DrawSimpleMode)
-            {
-                var key = $"{trap.Position.X:f2}:{trap.Position.Y:f2}:{trap.Position.Z:f2}.{trap.Type}";
-                PictoService.VfxRenderer.AddCircle(key, trap.Position, 4f, GetTrapColor(trap.Type));
-            }
-        }
-
 
         TowerRun.Render(context);
     }
 
-    private Vector4 GetTrapColor(OccultObjectType type)
+    private void DrawPotentialTraps(RenderContext context)
+    {
+        var candidates = GetModule<DevMapModule>()
+            .GetTowerTrapCandidates(
+                Svc.ClientState.TerritoryType,
+                Svc.ClientState.MapId,
+                includeAllMaps: true
+            )
+            .Where(candidate => !candidate.IsExcluded);
+
+#if DEBUG
+        if (!Config.IgnoreDrawRange)
+        {
+            candidates = candidates.Where(candidate =>
+                Player.DistanceTo(candidate.Position) <= Config.TrapDrawRange
+            );
+        }
+#else
+        candidates = candidates.Where(candidate =>
+            Player.DistanceTo(candidate.Position) <= Config.TrapDrawRange
+        );
+#endif
+
+        foreach (var candidate in candidates)
+        {
+            var radius = Math.Max(0.1f, candidate.MechanicRadius);
+            var color = candidate.IsObservedInCurrentRun
+                ? GetObservedTrapColor(candidate.Type)
+                : GetTrapColor(candidate.Type);
+            if (Config.DrawSimpleMode || Config.DrawOutlineForComplexMode)
+            {
+                context.DrawCircle(candidate.Position, radius, color);
+            }
+
+            if (!Config.DrawSimpleMode)
+            {
+                var key = FormattableString.Invariant(
+                    $"BOCCHI.PotentialTrap.{candidate.GroupKey}.{candidate.Position.X:F2}:{candidate.Position.Y:F2}:{candidate.Position.Z:F2}.{candidate.Type}.{candidate.IsObservedInCurrentRun}"
+                );
+                PctService.VfxRenderer.AddCircle(
+                    key,
+                    candidate.Position,
+                    radius,
+                    color
+                );
+            }
+        }
+    }
+
+    private Vector4 GetTrapColor(ForkedTowerEventObjType type)
     {
         return type switch
         {
-            OccultObjectType.Trap => Config.TrapDrawColor,
-            OccultObjectType.BigTrap => Config.BigTrapDrawColor,
+            ForkedTowerEventObjType.SmallTrap => Config.TrapDrawColor,
+            ForkedTowerEventObjType.BigTrap => Config.BigTrapDrawColor,
             _ => new Vector4(4f, 7f, 1f, 1f),
         };
+    }
+
+    private static Vector4 GetObservedTrapColor(ForkedTowerEventObjType type)
+    {
+        return type == ForkedTowerEventObjType.BigTrap
+            ? ImGuiColors.DalamudOrange
+            : ImGuiColors.DPSRed;
+    }
+
+    public bool EnsureRunLifecycle()
+    {
+        var isInTower = ZoneData.IsInForkedTower();
+        if (!isInTower)
+        {
+            wasInForkedTower = false;
+            activeTowerTerritoryId = 0;
+            return false;
+        }
+
+        var territoryId = Svc.ClientState.TerritoryType;
+        if (!wasInForkedTower || activeTowerTerritoryId != territoryId)
+        {
+            StartNewRun();
+        }
+
+        return true;
     }
 
 
@@ -97,27 +156,6 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
     {
         panel.Draw(this);
         return true;
-    }
-
-    private IEnumerable<TrapDatum> GetTrapsToRender()
-    {
-        var groups = TrapData.Groups.AsEnumerable();
-
-#if DEBUG
-        if (!Config.IgnoreDrawRange)
-        {
-            groups = groups.Where(group => group.GetDistance() <= Config.TrapDrawRange);
-        }
-#else
-        groups = groups.Where(group => group.GetDistance() <= Config.TrapDrawRange);
-#endif
-
-        if (Config.StopRenderingCompleteGroups)
-        {
-            groups = groups.Where(group => !TowerRun.HasDiscoveredAllTraps(group));
-        }
-
-        return groups.SelectMany(group => group.Traps);
     }
 
     private void OnCriticalEncounterBattle(DynamicEvent ev)
@@ -130,16 +168,20 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
         StartNewRun();
     }
 
-    private void StartNewRun()
+    public void StartNewRun()
     {
         TowerRun = new TowerRun(GenerateHash());
+        wasInForkedTower = ZoneData.IsInForkedTower();
+        activeTowerTerritoryId = wasInForkedTower
+            ? Svc.ClientState.TerritoryType
+            : 0;
     }
 
     private string GenerateHash()
     {
         using var sha256 = SHA256.Create();
 
-        var timeBytes = BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        var timeBytes = BitConverter.GetBytes(DateTime.UtcNow.Ticks);
         var contentIdBytes = BitConverter.GetBytes(Player.CID);
 
         if (!BitConverter.IsLittleEndian)

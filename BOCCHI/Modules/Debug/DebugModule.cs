@@ -81,7 +81,7 @@ public class DebugModule(Plugin plugin, Config config) : Module(plugin, config)
         panels.Each(p => p.Update(this));
     }
 
-    public override void OnTerritoryChanged(ushort id)
+    public override void OnTerritoryChanged(uint id)
     {
         panels.Each(p => p.OnTerritoryChanged(id, this));
     }

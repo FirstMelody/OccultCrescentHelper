@@ -1,0 +1,81 @@
+name: Build and release BOCCHI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      DALAMUD_HOME: /tmp/dalamud
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Download Dalamud API
+        run: |
+          curl --fail --location --retry 3 \
+            https://goatcorp.github.io/dalamud-distrib/latest.zip \
+            --output /tmp/dalamud.zip
+          unzip -q /tmp/dalamud.zip -d "$DALAMUD_HOME"
+
+      - name: Restore
+        run: dotnet restore ./BOCCHI.sln
+
+      - name: Build release
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' BOCCHI/BOCCHI.csproj | head -1)"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          dotnet build ./BOCCHI.sln -c Release --no-restore \
+            -p:Version="$VERSION" \
+            -p:AssemblyVersion="$VERSION.0" \
+            -p:FileVersion="$VERSION.0"
+
+      - name: Verify and checksum package
+        shell: bash
+        run: |
+          test -f BOCCHI/bin/Release/BOCCHI/latest.zip
+          cp BOCCHI/bin/Release/BOCCHI/latest.zip latest.zip
+          sha256sum latest.zip > latest.zip.sha256
+          unzip -l latest.zip
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BOCCHI-${{ env.VERSION }}
+          path: |
+            latest.zip
+            latest.zip.sha256
+
+      - name: Create GitHub release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BOCCHI ${{ env.VERSION }}
+          body_path: .github/release-notes.md
+          generate_release_notes: true
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            latest.zip
+            latest.zip.sha256

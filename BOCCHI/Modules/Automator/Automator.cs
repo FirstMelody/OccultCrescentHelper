@@ -44,8 +44,16 @@ public class Automator
             if (states.GetState() == State.InCriticalEncounter)
             {
                 var critical = module.GetModule<CriticalEncountersModule>();
-                var encounter = critical.CriticalEncounters.Values.Last(ev => ev.State != DynamicEventState.Inactive);
-                var data = EventData.CriticalEncounters[encounter.DynamicEventId];
+                var activeEncounters = critical.CriticalEncounters.Values
+                    .Where(ev => ev.State != DynamicEventState.Inactive)
+                    .ToList();
+                if (activeEncounters.Count == 0)
+                {
+                    return;
+                }
+
+                var encounter = activeEncounters[^1];
+                var data = GetCriticalEncounterData(encounter);
                 Activity = new CriticalEncounter(data, lifestream, vnav, module, critical);
 
                 if (Activity != null)
@@ -113,6 +121,13 @@ public class Automator
             return;
         }
 
+        // North aethernet IDs and destinations are not known before release.
+        // Stay idle instead of returning to coordinates from South Horn.
+        if (ZoneData.IsInNorthernExpedition())
+        {
+            return;
+        }
+
         var closest = AethernetData.GetClosestToPlayer();
         if (closest.DistanceToPlayer() <= 4.5f)
         {
@@ -137,7 +152,10 @@ public class Automator
 
         foreach (var encounter in source.CriticalEncounters.Values)
         {
-            if (!module.Config.CriticalEncountersMap.TryGetValue(encounter.DynamicEventId, out var enabled) || !enabled)
+            if (!module.Config.IsCriticalEncounterEnabled(
+                    Svc.ClientState.TerritoryType,
+                    encounter.DynamicEventId
+                ))
             {
                 continue;
             }
@@ -147,11 +165,7 @@ public class Automator
                 continue;
             }
 
-            if (!EventData.CriticalEncounters.TryGetValue(encounter.DynamicEventId, out var data))
-            {
-                continue;
-            }
-
+            var data = GetCriticalEncounterData(encounter);
             return new CriticalEncounter(data, lifestream, vnav, module, source);
         }
 
@@ -167,7 +181,7 @@ public class Automator
 
         foreach (var fate in source.fates.Values)
         {
-            if (!module.Config.FatesMap[fate.Id])
+            if (!module.Config.IsFateEnabled(Svc.ClientState.TerritoryType, fate.Id))
             {
                 continue;
             }
@@ -176,6 +190,23 @@ public class Automator
         }
 
         return null;
+    }
+
+    private static EventData GetCriticalEncounterData(DynamicEvent encounter)
+    {
+        if (EventData.CriticalEncounters.TryGetValue(encounter.DynamicEventId, out var knownData))
+        {
+            return knownData;
+        }
+
+        return new EventData
+        {
+            Id = encounter.DynamicEventId,
+            Type = EventType.CriticalEncounter,
+            InternalName = encounter.Name.ToString(),
+            StartPosition = encounter.MapMarker.Position,
+            Radius = 19f,
+        };
     }
 
     public void Refresh()

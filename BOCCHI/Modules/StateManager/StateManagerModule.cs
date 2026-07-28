@@ -72,6 +72,11 @@ public class StateManagerModule : Module
 
     public override void Update(UpdateContext context)
     {
+        Tick();
+    }
+
+    public void Tick()
+    {
         StateMachine.Update();
     }
 

@@ -79,10 +79,29 @@ public abstract class Activity
     {
         return () =>
         {
+            var isFate = data.Type == EventType.Fate;
+
+            // Until North chapter aethernet IDs and destinations are known, use
+            // direct vnav navigation. This prevents South Horn teleport/return
+            // coordinates from being used in a force-bound North territory.
+            if (ZoneData.IsInNorthernExpedition())
+            {
+                return Chain.Create("Illegal:Pathfinding:North")
+                    .ConditionalWait(
+                        _ => !isFate && module.Config.ShouldDelayCriticalEncounters,
+                        Random.Shared.Next(10000, 15001)
+                    )
+                    .Then(new PathfindingChain(vnav, GetPosition(), data))
+                    .ConditionalThen(
+                        _ => ShouldMountToPathfindTo(GetPosition()),
+                        ChainHelper.MountChain()
+                    )
+                    .Then(GetPathfindingWatcher(states))
+                    .Then(_ => state = GetPostPathfindingState());
+            }
+
             var playerShard = AethernetData.AllByDistance().First();
             var activityShard = GetAethernetData();
-
-            var isFate = data.Type == EventType.Fate;
             var navType = SmartNavigation.Decide(Player.Position, GetPosition(), activityShard);
 
             module.Debug("Selected navigation type: " + navType);

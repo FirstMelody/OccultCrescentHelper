@@ -1,0 +1,28 @@
+[
+  {
+    "Author": "Faye, FirstMelody fork",
+    "Name": "Better Occult Crescent & Chest Helper Interface",
+    "InternalName": "BOCCHI",
+    "Punchline": "⚠ 极度不稳定，随时更新，谨慎使用。",
+    "Description": "⚠ 极度不稳定，随时更新，谨慎使用。\n\nBOCCHI 蜃景幻界辅助的实验性开发分支，包含北征之章地图采集、CE/FATE、宝箱/胡萝卜标记与 Forked Tower 雷点研究功能。\n\n匿名地图遥测仅在用户明确同意后启用，不上传角色名、CID、账号、服务器、聊天内容或玩家实时位置。",
+    "AssemblyVersion": "3.2.0.0",
+    "TestingAssemblyVersion": "3.2.0.0",
+    "RepoUrl": "https://github.com/FirstMelody/OccultCrescentHelper",
+    "IconUrl": "https://raw.githubusercontent.com/FirstMelody/OccultCrescentHelper/master/assets/icon.png",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 15,
+    "TestingDalamudApiLevel": 15,
+    "Tags": [
+      "BOCCHI",
+      "Occult Crescent",
+      "新月岛",
+      "北征之章",
+      "Forked Tower",
+      "CE",
+      "FATE"
+    ],
+    "DownloadLinkInstall": "https://github.com/FirstMelody/OccultCrescentHelper/releases/latest/download/latest.zip",
+    "DownloadLinkTesting": "https://github.com/FirstMelody/OccultCrescentHelper/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/FirstMelody/OccultCrescentHelper/releases/latest/download/latest.zip"
+  }
+]

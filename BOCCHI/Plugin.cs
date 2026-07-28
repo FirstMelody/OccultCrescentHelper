@@ -34,6 +34,35 @@ public sealed class Plugin : OcelotPlugin
         : base(plugin, Module.DalamudReflector)
     {
         Config = plugin.GetPluginConfig() as Config ?? new Config();
+        var configChanged = false;
+        if (Config.Version < 2)
+        {
+            Config.DevModeEnabled = true;
+            Config.Version = 2;
+            configChanged = true;
+        }
+
+        if (Config.Version < 3)
+        {
+            Config.ForkedTowerConfig ??= new();
+            Config.ForkedTowerConfig.DrawPotentialTrapPositions = true;
+            Config.Version = 3;
+            configChanged = true;
+        }
+
+        if (Config.Version < 4)
+        {
+            Config.TelemetryConfig ??= new();
+            Config.Version = 4;
+            configChanged = true;
+        }
+
+        if (configChanged)
+        {
+            plugin.SavePluginConfig(Config);
+        }
+
+        ZoneData.Initialize(Config);
 
         SetupLanguage(plugin);
 
@@ -86,7 +115,7 @@ public sealed class Plugin : OcelotPlugin
                    Svc.Condition[ConditionFlag.OccupiedInEvent] ||
                    Svc.Condition[ConditionFlag.WatchingCutscene] ||
                    Svc.Condition[ConditionFlag.WatchingCutscene78] ||
-                   Svc.ClientState.LocalPlayer?.IsTargetable != true
+                   Svc.Objects.LocalPlayer?.IsTargetable != true
                );
     }
 }

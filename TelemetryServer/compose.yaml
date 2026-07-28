@@ -1,0 +1,9 @@
+services:
+  bocchi-telemetry:
+    build: .
+    container_name: bocchi-telemetry
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8080"
+    volumes:
+      - ./data:/data

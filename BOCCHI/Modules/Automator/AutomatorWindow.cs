@@ -1,6 +1,7 @@
 using System.Numerics;
 using BOCCHI.Data;
 using Dalamud.Interface;
+using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Ocelot;
 using Ocelot.Windows;
@@ -33,19 +34,13 @@ public class AutomatorWindow(Plugin _plugin, Config _config) : OcelotWindow(_plu
 
     protected override void Render(RenderContext context)
     {
-        if (!ZoneData.IsInOccultCrescent())
+        if (!ZoneData.IsInPluginTerritory())
         {
             ImGui.TextUnformatted(I18N.T("generic.label.not_in_zone"));
             return;
         }
 
         var automator = Plugin.Modules.GetModule<AutomatorModule>();
-        if (!automator.IsEnabled)
-        {
-            ImGui.TextUnformatted("Illegal Mode is not enabled.");
-            return;
-        }
-
         automator.panel.Draw(automator);
     }
 

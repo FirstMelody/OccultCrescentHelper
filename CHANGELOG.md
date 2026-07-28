@@ -1,3 +1,10 @@
+# 3.2.0
+
+- Added opt-in anonymous map telemetry and a public aggregate dashboard.
+- Added North chapter dev-map capture, CE/FATE naming, marker editing and Linker-style filters.
+- Added Forked Tower EventObj discovery, trap grouping and persistent world-space candidate ranges.
+- Added GitHub Release packaging and a Dalamud custom repository manifest.
+
 # 0.11.0
 
 - Updated UI to include both a teleport and move to button

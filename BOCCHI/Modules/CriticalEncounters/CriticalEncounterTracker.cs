@@ -35,7 +35,14 @@ public class CriticalEncounterTracker
 
     public unsafe void Tick(IFramework _)
     {
-        CriticalEncounters = PublicContentOccultCrescent.GetInstance()->DynamicEventContainer.Events
+        var occultCrescent = PublicContentOccultCrescent.GetInstance();
+        if (occultCrescent == null)
+        {
+            CriticalEncounters.Clear();
+            return;
+        }
+
+        CriticalEncounters = occultCrescent->DynamicEventContainer.Events
             .ToArray()
             .ToDictionary(ev => (uint)ev.DynamicEventId, ev => ev);
 

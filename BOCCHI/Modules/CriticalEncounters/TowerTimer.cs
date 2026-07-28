@@ -98,7 +98,7 @@ public class TowerTimer : IDisposable
         LastForkedTowerRegister = DateTime.Now;
     }
 
-    private void OnTerritoryChanged(ushort _)
+    private void OnTerritoryChanged(uint _)
     {
         if (!ZoneData.IsInOccultCrescent())
         {

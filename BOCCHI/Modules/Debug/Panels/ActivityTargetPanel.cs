@@ -82,7 +82,7 @@ public class ActivityTargetPanel : Panel
 
             var isRelatedToCurrentEvent = battleChara->EventId.EntryId == Player.BattleChara->EventId.EntryId;
 
-            return obj.SubKind == (byte)BattleNpcSubKind.Enemy && isRelatedToCurrentEvent;
+            return obj.SubKind == (byte)BattleNpcSubKind.Combatant && isRelatedToCurrentEvent;
         }
         catch (Exception ex)
         {

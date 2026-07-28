@@ -49,7 +49,7 @@ public class CriticalEncounter : Activity
             {
                 // Get all players in the zone
                 var playersInZone = Svc.Objects
-                    .Where(o => o.ObjectKind == ObjectKind.Player)
+                    .Where(o => o.ObjectKind == ObjectKind.Pc)
                     .Where(o => Vector3.Distance(o.Position, GetPosition()) <= (data.Radius ?? GetRadius()))
                     .ToList();
 
@@ -189,7 +189,7 @@ public class CriticalEncounter : Activity
 
             var isRelatedToCurrentEvent = battleChara->EventId.EntryId == Player.BattleChara->EventId.EntryId;
 
-            return obj.SubKind == (byte)BattleNpcSubKind.Enemy && isRelatedToCurrentEvent;
+            return obj.SubKind == (byte)BattleNpcSubKind.Combatant && isRelatedToCurrentEvent;
         }
         catch (Exception ex)
         {

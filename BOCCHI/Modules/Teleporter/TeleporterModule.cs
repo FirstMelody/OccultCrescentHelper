@@ -67,7 +67,7 @@ public class TeleporterModule : Module
         }
 
         // This could be the dumbest thing I've ever written, but that bar is low
-        if (addon->AtkValues[7].Type != ValueType.Int || addon->AtkValues[7].Int != -1)
+        if (addon->AtkValues[7].Type != AtkValueType.Int || addon->AtkValues[7].Int != -1)
         {
             return;
         }

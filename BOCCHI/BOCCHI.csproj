@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/14.0.1">
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
     <PropertyGroup>
-        <Version>0.0.0.1</Version>
-        <Description>A helper for Occult Crescent.</Description>
-        <PackageProjectUrl>https://github.com/OhKannaDuh/OccultCrescentHelper</PackageProjectUrl>
+        <Version>3.2.0</Version>
+        <Description>极度不稳定，随时更新，谨慎使用。</Description>
+        <PackageProjectUrl>https://github.com/FirstMelody/OccultCrescentHelper</PackageProjectUrl>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <IsPackable>false</IsPackable>
-        <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+        <DalamudLibPath Condition="Exists('$(DALAMUD_HOME)/Dalamud.dll')">$(DALAMUD_HOME)/</DalamudLibPath>
+        <DalamudLibPath Condition="'$(DALAMUD_HOME)' == '' AND Exists('$(appdata)\XIVLauncherCN\addon\Hooks\dev\Dalamud.dll')">$(appdata)\XIVLauncherCN\addon\Hooks\dev\</DalamudLibPath>
+        <DalamudLibPath Condition="'$(DalamudLibPath)' == ''">$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+        <AssemblySearchPaths>$(AssemblySearchPaths);$(DalamudLibPath)</AssemblySearchPaths>
         <NoWarn>$(NoWarn);4014</NoWarn>
         <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=$(MSBuildProjectName)/</PathMap>
     </PropertyGroup>
@@ -35,9 +38,10 @@
         <ProjectReference Include="../Ocelot/Ocelot/Ocelot.csproj"/>
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="FFXIVOcelot" Version="1.1.2"/>
+        <PackageReference Include="FFXIVOcelot" Version="1.1.5"/>
     </ItemGroup>
     <ItemGroup>
+        <PackageReference Include="Pictomancy" Version="1.0.10" />
         <PackageReference Include="TextCopy" Version="6.2.1"/>
     </ItemGroup>
 </Project>

@@ -4,8 +4,8 @@
       "config": {
         "title": "两歧塔设置",
         "draw_potential_trap_positions": {
-          "label": "显示隐藏陷阱位置",
-          "tooltip": "启用范围内陷阱生成位置的显示功能"
+          "label": "在游戏世界显示候选雷组",
+          "tooltip": "显示范围内未排除候选点的完整机制范围；扫描到实际雷后保留实际位置，并自动移除同组不可能点位"
         },
         "draw_simple_mode": {
           "label": "简易绘制模式",
@@ -34,10 +34,6 @@
         "draw_big_trap_range": {
           "label": "显示大型陷阱爆炸范围",
           "tooltip": "仅对已发现的陷阱生效（范围仍在最终确定中）"
-        },
-        "stop_rendering_complete_groups": {
-          "label": "停止显示已被探出的陷阱",
-          "tooltip": "停止绘制已被探出的陷阱位置（此功能正在开发中）"
         }
       }
     }

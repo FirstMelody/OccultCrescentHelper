@@ -17,6 +17,11 @@ public class FateTracker
 
     public void Update(UpdateContext context)
     {
+        Update();
+    }
+
+    public void Update()
+    {
         var currentFates = Svc.Fates.ToDictionary(f => (uint)f.FateId, f => f);
 
         foreach (var (id, data) in currentFates)
@@ -39,7 +44,7 @@ public class FateTracker
 
         foreach (var fate in Fates.Values)
         {
-            fate.Update(context);
+            fate.Update();
         }
     }
 }

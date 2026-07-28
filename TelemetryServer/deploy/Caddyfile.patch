@@ -1,0 +1,14 @@
+--- Caddyfile
++++ Caddyfile
+@@ -60,6 +60,11 @@
+ 
+ 	# 使用 route 块来保证处理顺序
+ 	route {
++		# BOCCHI opt-in anonymous map telemetry and public aggregate dashboard.
++		handle_path /bocchi-telemetry/* {
++			reverse_proxy 127.0.0.1:8787
++		}
++
+ 		# FF14 Arena Next simulator, served from a prebuilt root-path image.
+ 		handle /ffsim* {
+ 			header Cache-Control "no-store"

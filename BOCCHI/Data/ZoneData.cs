@@ -14,6 +14,13 @@ public static class ZoneData
 {
     public const uint SOUTHHORN = 1252;
 
+    private static Config? config;
+
+    public static void Initialize(Config pluginConfig)
+    {
+        config = pluginConfig;
+    }
+
     // This can and should be filled using layout files or excel data
     public readonly static Dictionary<uint, Vector3> Aetherytes = new()
     {
@@ -26,30 +33,76 @@ public static class ZoneData
     };
 
     // Zone functions
-    private static bool IsInSouthHorn()
+    public static bool IsInSouthHorn()
     {
         return Svc.ClientState.TerritoryType == SOUTHHORN;
     }
 
+    public static bool IsNorthernExpeditionTerritory(uint territoryId)
+    {
+        return config?.NorthernExpeditionTerritoryId is > 0
+               && territoryId == config.NorthernExpeditionTerritoryId;
+    }
+
+    public static bool IsInNorthernExpedition()
+    {
+        return Svc.Objects.LocalPlayer != null
+               && IsNorthernExpeditionTerritory(Svc.ClientState.TerritoryType);
+    }
+
+    public static bool IsPluginTerritory(uint territoryId)
+    {
+        return territoryId == SOUTHHORN
+               || IsNorthernExpeditionTerritory(territoryId)
+               || IsForkedTowerBloodTerritory(territoryId);
+    }
+
+    public static bool IsInPluginTerritory()
+    {
+        return Svc.Objects.LocalPlayer != null && IsPluginTerritory(Svc.ClientState.TerritoryType);
+    }
+
     public static bool IsInOccultCrescent()
     {
-        return Svc.ClientState.LocalPlayer != null && IsInSouthHorn();
+        return Svc.Objects.LocalPlayer != null && IsInSouthHorn();
     }
 
     // Tower functions
-    private static bool IsInForkedTowerBlood()
+    public static bool IsForkedTowerBloodTerritory(uint territoryId)
     {
-        var player = Svc.ClientState.LocalPlayer;
+        return config?.ForkedTowerBloodTerritoryId is > 0
+               && territoryId == config.ForkedTowerBloodTerritoryId;
+    }
+
+    public static bool HasForkedTowerBloodStatus()
+    {
+        var player = Svc.Objects.LocalPlayer;
+        return player != null && player.StatusList.HasAny(
+            PlayerStatus.DutiesAsAssigned,
+            PlayerStatus.ResurrectionDenied,
+            PlayerStatus.ResurrectionRestricted
+        );
+    }
+
+    public static bool IsInForkedTowerBlood()
+    {
+        var player = Svc.Objects.LocalPlayer;
         if (player == null)
         {
             return false;
         }
 
-        return player.StatusList.HasAny(
-            PlayerStatus.DutiesAsAssigned,
-            PlayerStatus.ResurrectionDenied,
-            PlayerStatus.ResurrectionRestricted
-        ) && IsInSouthHorn();
+        var territoryId = Svc.ClientState.TerritoryType;
+        if (config?.ForceForkedTowerBloodTerritory == true
+            && IsForkedTowerBloodTerritory(territoryId))
+        {
+            return true;
+        }
+
+        return HasForkedTowerBloodStatus()
+               && (territoryId == SOUTHHORN
+                   || IsNorthernExpeditionTerritory(territoryId)
+                   || IsForkedTowerBloodTerritory(territoryId));
     }
 
     public static bool IsInForkedTower()
@@ -82,7 +135,7 @@ public static class ZoneData
 
     public static IList<IGameObject> GetNearbyAethernetShards(float range = 4.3f)
     {
-        var playerPos = Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero;
+        var playerPos = Svc.Objects.LocalPlayer?.Position ?? Vector3.Zero;
 
         return Svc.Objects
             .Where(o => o.ObjectKind == ObjectKind.EventObj)
@@ -98,7 +151,7 @@ public static class ZoneData
 
     public static IList<IGameObject> GetNearbyKnowledgeCrystal(float range = 4.5f)
     {
-        var playerPos = Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero;
+        var playerPos = Svc.Objects.LocalPlayer?.Position ?? Vector3.Zero;
 
         return Svc.Objects
             .Where(o => o.ObjectKind == ObjectKind.EventObj)

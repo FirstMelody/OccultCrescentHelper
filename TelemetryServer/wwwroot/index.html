@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BOCCHI 地图遥测</title>
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">OCCULT CRESCENT COMMUNITY DATA</p>
+        <h1>BOCCHI 地图遥测</h1>
+        <p class="warning">极度不稳定 · 随时更新 · 谨慎使用</p>
+      </div>
+      <span id="health" class="health">正在连接</span>
+    </header>
+
+    <section class="privacy">
+      这里只展示用户主动同意后上传的游戏内容坐标。服务不会收集角色名、CID、账号、
+      服务器、聊天内容或玩家实时位置。
+    </section>
+
+    <section class="cards">
+      <article><span>唯一点位</span><strong id="unique">—</strong></article>
+      <article><span>累计报告</span><strong id="reports">—</strong></article>
+      <article><span>当前筛选</span><strong id="visible">—</strong></article>
+    </section>
+
+    <section class="panel controls">
+      <label>Territory <input id="territory" inputmode="numeric" placeholder="全部"></label>
+      <label>Map <input id="map" inputmode="numeric" placeholder="全部"></label>
+      <button id="refresh">刷新地图资料</button>
+    </section>
+
+    <section class="grid">
+      <article class="panel plot-panel">
+        <div class="panel-title">
+          <h2>X / Z 点位</h2>
+          <span>颜色按类型区分；悬停查看详情</span>
+        </div>
+        <canvas id="plot"></canvas>
+        <div id="tooltip" class="tooltip" hidden></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-title"><h2>类型统计</h2></div>
+        <div id="kinds" class="kinds"></div>
+      </article>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-title"><h2>最近聚合点位</h2><span>最多显示 500 条</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>类型</th><th>Territory / Map</th><th>名称 / ID</th><th>坐标 X, Y, Z</th><th>报告</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="./site.js"></script>
+</body>
+</html>

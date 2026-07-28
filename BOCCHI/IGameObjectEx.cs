@@ -12,6 +12,6 @@ public static class IGameObjectEx
 
     public static bool IsTargetingPlayer(this IGameObject obj)
     {
-        return obj.TargetObject?.Address == Player.Object.Address;
+        return obj.TargetObject?.Address == Player.Object?.Address;
     }
 }

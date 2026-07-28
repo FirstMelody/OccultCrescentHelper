@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+using BOCCHI.Data;
 using BOCCHI.Modules.StateManager;
+using ECommons.DalamudServices;
 using Ocelot.Modules;
 
 namespace BOCCHI.Modules.WindowManager;
@@ -18,8 +19,6 @@ public class WindowManagerModule(Plugin _plugin, Config _config) : Module(_plugi
     }
 
 
-    private readonly List<uint> occultCrescentTerritoryIds = [1252];
-
     private bool mainClosed = false;
 
     private bool configClosed = false;
@@ -27,7 +26,8 @@ public class WindowManagerModule(Plugin _plugin, Config _config) : Module(_plugi
 
     public override void PostInitialize()
     {
-        if (Config.OpenMainOnStartUp)
+        if (ZoneData.IsNorthernExpeditionTerritory(Svc.ClientState.TerritoryType)
+            || Config.OpenMainOnStartUp)
         {
             Plugin.Windows.OpenMainUI();
         }
@@ -44,9 +44,13 @@ public class WindowManagerModule(Plugin _plugin, Config _config) : Module(_plugi
         GetModule<StateManagerModule>().OnEnterIdle += ExitCombat;
     }
 
-    public override void OnTerritoryChanged(ushort id)
+    public override void OnTerritoryChanged(uint id)
     {
-        if (occultCrescentTerritoryIds.Contains(id))
+        if (ZoneData.IsNorthernExpeditionTerritory(id))
+        {
+            Plugin.Windows.OpenMainUI();
+        }
+        else if (ZoneData.IsPluginTerritory(id))
         {
             if (Config.OpenMainOnEnter)
             {

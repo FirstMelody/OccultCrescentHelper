@@ -21,7 +21,7 @@ public class FatesPanel : Panel
         ProcessLgbData(Svc.ClientState.TerritoryType);
     }
 
-    public void ProcessLgbData(ushort id)
+    public void ProcessLgbData(uint id)
     {
         if (id == 0)
         {
@@ -95,7 +95,7 @@ public class FatesPanel : Panel
         });
     }
 
-    public override void OnTerritoryChanged(ushort id, DebugModule module)
+    public override void OnTerritoryChanged(uint id, DebugModule module)
     {
         ProcessLgbData(id);
     }

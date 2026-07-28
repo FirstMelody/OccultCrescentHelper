@@ -4,8 +4,8 @@
       "config": {
         "title": "Forked Tower Config",
         "draw_potential_trap_positions": {
-          "label": "Draw Potential Trap Positions",
-          "tooltip": "Enables drawing of potential trap spawn locations within range."
+          "label": "Draw Candidate Trap Groups In World",
+          "tooltip": "Draw full mechanic ranges for unresolved candidates, retain observed traps, and remove impossible positions when a group is resolved."
         },
         "draw_simple_mode": {
           "label": "Simple draw mode",
@@ -34,10 +34,6 @@
         "draw_big_trap_range" :{
           "label": "Draw explosion range for big traps",
           "tooltip":  "This only renders for discovered traps. Range is still being finalized."
-        },
-        "stop_rendering_complete_groups" : {
-          "label": "Stop rendering discovered groups",
-          "tooltip": "Stop rendering trap locations for fully discovered groups. This feature is a work in progress."
         }
       }
     }
