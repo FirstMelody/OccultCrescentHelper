@@ -1719,6 +1719,10 @@ public class DevMapModule : Module
                      + (new Vector2(18f, 46f) - ownerPosition) * uiScale;
         var markerZoom = addon->AreaMap.MapScale * uiScale;
         var panZoom = componentMap->MapScale * uiScale;
+        // The map plane is 2048 pixels wide. Relative to the visible map bounds,
+        // this yields 1 at the fitted zoom and grows as the user zooms in.
+        // Only monster text uses this factor; icon markers remain screen-sized.
+        var monsterTextZoom = Math.Clamp(2048f * markerZoom / bounds.Width, 1f, 3f);
         var sheetScale = mapRow.SizeFactor / 100f;
         var sheetOffset = new Vector2(mapRow.OffsetX, mapRow.OffsetY) * (sheetScale - 1f);
         var pan = new Vector2(
@@ -1836,7 +1840,13 @@ public class DevMapModule : Module
                 continue;
             }
 
-            DrawMonsterCluster(drawList, cluster, screenPosition, uiScale);
+            DrawMonsterCluster(
+                drawList,
+                cluster,
+                screenPosition,
+                uiScale,
+                monsterTextZoom
+            );
         }
 
         if (PluginConfig.DevModeEnabled
@@ -3026,7 +3036,8 @@ public class DevMapModule : Module
         ImDrawListPtr drawList,
         MonsterMapCluster cluster,
         Vector2 center,
-        float uiScale
+        float uiScale,
+        float mapZoom
     )
     {
         var labels = cluster.Members
@@ -3046,7 +3057,11 @@ public class DevMapModule : Module
         }
 
         var font = ImGui.GetFont();
-        var fontSize = Math.Clamp(ImGui.GetFontSize() * 0.68f * uiScale, 8f, 13f);
+        var fontSize = Math.Clamp(
+            ImGui.GetFontSize() * 0.68f * uiScale * mapZoom,
+            8f,
+            26f
+        );
         var lineHeight = fontSize + Math.Max(1.5f, 2f * uiScale);
         var textSizes = labels
             .Select(label => ImGui.CalcTextSize(label) * (fontSize / ImGui.GetFontSize()))
