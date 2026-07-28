@@ -1,0 +1,13 @@
+--- Caddyfile
++++ Caddyfile
+@@ -62,6 +62,11 @@
+ 		# BOCCHI opt-in anonymous map telemetry and public aggregate dashboard.
+ 		handle_path /bocchi-telemetry/* {
++			header {
++				Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
++				CDN-Cache-Control "no-store"
++				Cloudflare-CDN-Cache-Control "no-store"
++			}
+ 			reverse_proxy 127.0.0.1:8787
+ 		}
+ 

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>BOCCHI 地图遥测</title>
-  <link rel="stylesheet" href="./site.css">
+  <link rel="stylesheet" href="./site.css?v=20260728-map1">
 </head>
 <body>
   <main>
@@ -29,16 +29,22 @@
     </section>
 
     <section class="panel controls">
-      <label>Territory <input id="territory" inputmode="numeric" placeholder="全部"></label>
-      <label>Map <input id="map" inputmode="numeric" placeholder="全部"></label>
-      <button id="refresh">刷新地图资料</button>
+      <label class="map-picker">游戏地图
+        <select id="mapSelect" aria-label="选择游戏地图"></select>
+      </label>
+      <div class="map-identity">
+        <span>Territory <strong id="territory">—</strong></span>
+        <span>Map <strong id="map">—</strong></span>
+        <span id="mapResource">—</span>
+      </div>
+      <button id="refresh">刷新点位</button>
     </section>
 
     <section class="grid">
       <article class="panel plot-panel">
         <div class="panel-title">
-          <h2>X / Z 点位</h2>
-          <span>颜色按类型区分；悬停查看详情</span>
+          <h2 id="mapTitle">游戏地图点位</h2>
+          <span>真实客户端地图 · 颜色按类型区分 · 悬停查看详情</span>
         </div>
         <canvas id="plot"></canvas>
         <div id="tooltip" class="tooltip" hidden></div>
@@ -59,7 +65,8 @@
         </table>
       </div>
     </section>
+    <p class="map-note">地图纹理由本地 FFXIV 客户端导出，仅用于插件点位采集、校准与社区资料整理。</p>
   </main>
-  <script src="./site.js"></script>
+  <script src="./site.js?v=20260728-map1"></script>
 </body>
 </html>

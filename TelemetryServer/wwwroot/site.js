@@ -1,4 +1,11 @@
-const state = { markers: [], colors: new Map(), points: [] };
+const state = {
+  markers: [],
+  colors: new Map(),
+  points: [],
+  maps: [],
+  selectedMap: null,
+  mapImages: new Map(),
+};
 const palette = ["#ffcc66", "#f1787d", "#72d6c9", "#87a9ff", "#c892ff", "#ff9f5a", "#88d66c", "#e5e7eb"];
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -14,13 +21,54 @@ function colorFor(kind) {
   return state.colors.get(kind);
 }
 
+function normalizeMap(raw) {
+  return {
+    territoryId: raw.territoryId ?? raw.TerritoryId,
+    mapId: raw.mapId ?? raw.MapId,
+    mapResourceId: raw.mapResourceId ?? raw.MapResourceId,
+    placeName: raw.placeName ?? raw.PlaceName,
+    contentName: raw.contentName ?? raw.ContentName,
+    sizeFactor: raw.sizeFactor ?? raw.SizeFactor ?? 100,
+    offsetX: raw.offsetX ?? raw.OffsetX ?? 0,
+    offsetY: raw.offsetY ?? raw.OffsetY ?? 0,
+    image: raw.image ?? raw.Image,
+    width: raw.width ?? raw.Width ?? 2048,
+    height: raw.height ?? raw.Height ?? 2048,
+  };
+}
+
+async function loadCatalog() {
+  const catalog = await getJson("./maps/catalog.json");
+  state.maps = (catalog.maps ?? []).map(normalizeMap);
+  const picker = $("mapSelect");
+  picker.innerHTML = state.maps.map(map =>
+    `<option value="${map.territoryId}:${map.mapId}">${esc(map.contentName)} · ${esc(map.placeName)}</option>`
+  ).join("");
+  const north = state.maps.find(map => map.territoryId === 1346) ?? state.maps[0];
+  if (north) picker.value = `${north.territoryId}:${north.mapId}`;
+  selectCurrentMap();
+}
+
+function selectCurrentMap() {
+  const [territoryId, mapId] = $("mapSelect").value.split(":").map(Number);
+  state.selectedMap = state.maps.find(map => map.territoryId === territoryId && map.mapId === mapId) ?? null;
+  const map = state.selectedMap;
+  $("territory").textContent = map?.territoryId ?? "—";
+  $("map").textContent = map?.mapId ?? "—";
+  $("mapResource").textContent = map?.mapResourceId ?? "—";
+  $("mapTitle").textContent = map ? `${map.placeName}点位` : "游戏地图点位";
+}
+
 async function refresh() {
   try {
-    const territory = $("territory").value.trim();
-    const map = $("map").value.trim();
-    const query = new URLSearchParams({ limit: "500" });
-    if (territory) query.set("territoryId", territory);
-    if (map) query.set("mapId", map);
+    if (!state.maps.length) await loadCatalog();
+    selectCurrentMap();
+    const map = state.selectedMap;
+    const query = new URLSearchParams({ limit: "1000" });
+    if (map) {
+      query.set("territoryId", map.territoryId);
+      query.set("mapId", map.mapId);
+    }
     const [stats, data] = await Promise.all([
       getJson("./api/v1/stats"),
       getJson(`./api/v1/markers?${query}`),
@@ -33,7 +81,7 @@ async function refresh() {
     $("health").className = "health ok";
     renderKinds(stats.kinds);
     renderRows();
-    drawPlot();
+    await drawMap();
   } catch (error) {
     $("health").textContent = `连接失败 ${error.message}`;
     $("health").className = "health";
@@ -62,53 +110,84 @@ function renderRows() {
   }).join("");
 }
 
-function drawPlot() {
+function loadMapImage(map) {
+  if (state.mapImages.has(map.image)) return state.mapImages.get(map.image);
+  const promise = new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = `./maps/${map.image}`;
+  });
+  state.mapImages.set(map.image, promise);
+  return promise;
+}
+
+function markerToPixel(marker, map, width, height) {
+  const scale = map.sizeFactor / 100;
+  const mapX = marker.x * scale + map.offsetX * (scale - 1);
+  const mapY = marker.z * scale + map.offsetY * (scale - 1);
+  return {
+    x: (mapX + 1024) / 2048 * width,
+    y: (mapY + 1024) / 2048 * height,
+  };
+}
+
+async function drawMap() {
   const canvas = $("plot");
+  const map = state.selectedMap;
+  if (!map) return;
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  const width = rect.width;
+  const height = rect.width;
+  canvas.width = Math.max(1, Math.floor(width * dpr));
+  canvas.height = Math.max(1, Math.floor(height * dpr));
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
-  const width = rect.width, height = rect.height, pad = 34;
   ctx.clearRect(0, 0, width, height);
-  ctx.strokeStyle = "#273144";
-  ctx.fillStyle = "#8290a8";
-  ctx.font = "11px system-ui";
-  for (let i = 0; i <= 5; i++) {
-    const x = pad + (width - pad * 2) * i / 5;
-    const y = pad + (height - pad * 2) * i / 5;
-    ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, height - pad); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(width - pad, y); ctx.stroke();
-  }
-  if (!state.markers.length) {
-    ctx.fillText("当前筛选没有数据", pad, pad);
-    state.points = [];
-    return;
-  }
-  const xs = state.markers.map(m => m.x), zs = state.markers.map(m => m.z);
-  let minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
-  if (minX === maxX) { minX--; maxX++; }
-  if (minZ === maxZ) { minZ--; maxZ++; }
+
+  const image = await loadMapImage(map);
+  ctx.drawImage(image, 0, 0, width, height);
+  ctx.fillStyle = "#07101a12";
+  ctx.fillRect(0, 0, width, height);
+
   state.points = state.markers.map(marker => {
-    const x = pad + (marker.x - minX) / (maxX - minX) * (width - pad * 2);
-    const y = height - pad - (marker.z - minZ) / (maxZ - minZ) * (height - pad * 2);
-    ctx.fillStyle = colorFor(marker.kind);
-    ctx.globalAlpha = .85;
-    ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
-    return { x, y, marker };
+    const point = markerToPixel(marker, map, width, height);
+    const color = colorFor(marker.kind);
+    if (marker.mechanicRadius > 0) {
+      const radius = marker.mechanicRadius * (map.sizeFactor / 100) / 2048 * width;
+      ctx.fillStyle = `${color}28`;
+      ctx.strokeStyle = `${color}bb`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, Math.max(3, radius), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "#111827dd";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fill();
+    ctx.strokeStyle = "#ffffffee";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    ctx.stroke();
+    return { ...point, marker };
   });
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "#8290a8";
-  ctx.fillText(`X ${minX.toFixed(1)} → ${maxX.toFixed(1)}`, pad, height - 8);
-  ctx.save(); ctx.translate(12, height - pad); ctx.rotate(-Math.PI / 2);
-  ctx.fillText(`Z ${minZ.toFixed(1)} → ${maxZ.toFixed(1)}`, 0, 0); ctx.restore();
+
+  ctx.strokeStyle = "#12182688";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(.5, .5, width - 1, height - 1);
 }
 
 $("plot").addEventListener("mousemove", event => {
   const rect = event.currentTarget.getBoundingClientRect();
   const x = event.clientX - rect.left, y = event.clientY - rect.top;
-  const hit = state.points.find(point => Math.hypot(point.x - x, point.y - y) < 8);
+  const hit = state.points.find(point => Math.hypot(point.x - x, point.y - y) < 10);
   const tip = $("tooltip");
   if (!hit) { tip.hidden = true; return; }
   const marker = hit.marker;
@@ -119,6 +198,7 @@ $("plot").addEventListener("mousemove", event => {
   tip.hidden = false;
 });
 $("plot").addEventListener("mouseleave", () => $("tooltip").hidden = true);
+$("mapSelect").addEventListener("change", refresh);
 $("refresh").addEventListener("click", refresh);
-window.addEventListener("resize", drawPlot);
+window.addEventListener("resize", () => drawMap());
 refresh();
