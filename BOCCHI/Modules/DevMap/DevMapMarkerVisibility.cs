@@ -14,6 +14,7 @@ public enum DevMapMarkerVisibility : ushort
     CriticalEncounter = 1 << 5,
     InvestigationLocation = 1 << 6,
     UnknownChest = 1 << 7,
+    Monster = 1 << 8,
     All = SilverChest
           | BronzeChest
           | FortuneCarrot
@@ -21,5 +22,6 @@ public enum DevMapMarkerVisibility : ushort
           | Fate
           | CriticalEncounter
           | InvestigationLocation
-          | UnknownChest,
+          | UnknownChest
+          | Monster,
 }

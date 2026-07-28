@@ -3,6 +3,7 @@ using System.Linq;
 using BOCCHI.Data;
 using BOCCHI.Modules.Teleporter;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Colors;
 using Ocelot.Ui;
 
 namespace BOCCHI.Modules.Fates;
@@ -14,6 +15,8 @@ public class Panel
         OcelotUi.Title($"{module.T("panel.title")}:");
         OcelotUi.Indent(() =>
         {
+            DrawPotTracker(module);
+
             if (module.tracker.Fates.Count <= 0)
             {
                 ImGui.TextUnformatted(module.T("panel.none"));
@@ -59,5 +62,52 @@ public class Panel
                 }
             }
         });
+    }
+
+    private static void DrawPotTracker(FatesModule module)
+    {
+        var snapshot = module.PotTracker.Snapshot;
+        if (!snapshot.IsSupportedTerritory)
+        {
+            return;
+        }
+
+        ImGui.TextColored(
+            ImGuiColors.DalamudOrange,
+            module.T("panel.pot_tracker.title")
+        );
+        if (snapshot.IsActive)
+        {
+            ImGui.TextColored(
+                ImGuiColors.HealerGreen,
+                string.Format(module.T("panel.pot_tracker.active"), snapshot.FateName)
+            );
+        }
+        else if (!snapshot.HasHistory)
+        {
+            ImGui.TextColored(
+                ImGuiColors.DalamudGrey,
+                module.T("panel.pot_tracker.unknown")
+            );
+        }
+        else if (snapshot.Remaining > TimeSpan.Zero)
+        {
+            ImGui.TextUnformatted(
+                string.Format(
+                    module.T("panel.pot_tracker.next"),
+                    snapshot.FateName,
+                    snapshot.Remaining.ToString(@"mm\:ss")
+                )
+            );
+        }
+        else
+        {
+            ImGui.TextColored(
+                ImGuiColors.ParsedGold,
+                string.Format(module.T("panel.pot_tracker.ready"), snapshot.FateName)
+            );
+        }
+
+        OcelotUi.VSpace();
     }
 }

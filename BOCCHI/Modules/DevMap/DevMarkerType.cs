@@ -10,6 +10,8 @@ public enum DevMarkerType
     PotChest,
     Fate,
     CriticalEncounter,
+    // Kept only so v3 JSON can be read and purged during migration.
     InvestigationLocation,
     UnknownChest,
+    Monster,
 }

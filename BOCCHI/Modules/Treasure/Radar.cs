@@ -26,7 +26,12 @@ public class Radar
         }
 
         var config = module.Config;
-        if (config is { ShouldDrawLineToBronzeChests: false, ShouldDrawLineToSilverChests: false })
+        if (config is
+            {
+                ShouldDrawLineToBronzeChests: false,
+                ShouldDrawLineToSilverChests: false,
+                ShouldDrawLineToPotChests: false,
+            })
         {
             return;
         }
@@ -40,6 +45,11 @@ public class Radar
             }
 
             if (config.ShouldDrawLineToSilverChests && treasure.GetTreasureType() == TreasureType.Silver)
+            {
+                context.DrawLine(treasure.GetPosition(), treasure.GetColor());
+            }
+
+            if (config.ShouldDrawLineToPotChests && treasure.GetTreasureType() == TreasureType.Gold)
             {
                 context.DrawLine(treasure.GetPosition(), treasure.GetColor());
             }

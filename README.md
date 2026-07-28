@@ -20,9 +20,10 @@ https://raw.githubusercontent.com/FirstMelody/OccultCrescentHelper/master/repo.j
 ## 当前开发功能
 
 - 北征之章 Territory/Map 强制绑定与 dev 地图采集
-- 铜/银宝箱、胡萝卜、罐子宝箱、调查地点自动或手动标记
+- 铜/银宝箱、胡萝卜、罐子宝箱和调查地点自动标记
+- 自动统计附近连续静止且未进入交战的怪物，并按怪物类型与生成区域聚合为中心点
 - FATE/CE 坐标和本地化名称记录
-- Eureka Linker 风格的地图图标、分类开关与右键编辑
+- Eureka Linker 风格的地图图标与分类显示开关；采集点位只读
 - Forked Tower EventObj 采集、雷点编组、互斥排除和 3D 机制范围
 - 动态北征 Illegal Mode 支持
 - 北岛已共鸣魔路采集，以及按 vnav 实际路径选择直走或 Lifestream 传送
@@ -42,15 +43,21 @@ https://raw.githubusercontent.com/FirstMelody/OccultCrescentHelper/master/repo.j
 
 ## 匿名地图遥测
 
-插件首次运行会询问是否上传地图资料。**只有明确点击同意后才会上传**，拒绝后不会
-静默收集。上传内容仅限游戏内容坐标：
+插件首次运行或上传范围扩大时会询问是否上传地图资料。**只有明确点击同意后才会上传**，
+拒绝后不会静默上传。上传内容仅限游戏内容坐标：
 
 - Territory/Map、标记类型、XYZ
 - FATE/CE Event ID 与游戏内名称
+- 调查地点 Base ID、名称与坐标
+- 静止未交战怪物的 Base ID、名称、等级与坐标
 - Tower EventObj Base ID、类型、Hitbox/机制半径
 
 不会上传角色名、Content ID、账号、服务器、聊天内容或玩家实时位置。可随时执行
 `/bocchi telemetry off` 关闭。
+
+为防止公开地图被恶意数据污染，服务端会使用仅存于服务器的秘密密钥，对请求网络
+地址生成不可逆 HMAC 哈希。该哈希不公开，仅用于限流、审计和整批撤销对应来源的
+贡献；原始网络地址不写入标记数据库。
 
 公开聚合数据面板：
 [BOCCHI 地图遥测](https://h.lionwebsite.xyz/bocchi-telemetry/)

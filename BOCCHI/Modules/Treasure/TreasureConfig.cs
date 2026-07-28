@@ -28,6 +28,15 @@ public class TreasureConfig : ModuleConfig
     }
 
     [Checkbox]
+    [DependsOn(nameof(Enabled))]
+    public bool DrawLineToPotChests { get; set; } = true;
+
+    public bool ShouldDrawLineToPotChests
+    {
+        get => IsPropertyEnabled(nameof(DrawLineToPotChests));
+    }
+
+    [Checkbox]
     [Experimental]
     [Illegal]
     [RequiredPlugin("vnavmesh", "Lifestream")]

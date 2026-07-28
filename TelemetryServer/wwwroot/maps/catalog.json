@@ -1,19 +1,6 @@
 {
   "maps": [
     {
-      "TerritoryId": 1252,
-      "MapId": 967,
-      "MapResourceId": "o6b1/01",
-      "PlaceName": "\u65B0\u6708\u5C9B\u5357\u90E8",
-      "ContentName": "\u8703\u666F\u5E7B\u754C\u65B0\u6708\u5C9B \u5357\u5F81\u4E4B\u7AE0",
-      "SizeFactor": 100,
-      "OffsetX": 0,
-      "OffsetY": 0,
-      "Image": "1252-967.webp",
-      "Width": 2048,
-      "Height": 2048
-    },
-    {
       "TerritoryId": 1346,
       "MapId": 1135,
       "MapResourceId": "o6b2/01",

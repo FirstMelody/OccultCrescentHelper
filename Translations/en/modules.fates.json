@@ -34,12 +34,23 @@
         "alert_orpiment": {
           "label": "Alert for Orpiment Demiatma Fate",
           "tooltip": "Play a sound effect when a fate that drops the Orpiment Demiatma spawns"
+        },
+        "show_pot_fate_timer_on_dtr": {
+          "label": "Show Pot FATE timer on the server info bar",
+          "tooltip": "Show the 30-minute countdown to the next Pot FATE based on the previous spawn in this chapter"
         }
       },
       "panel": {
         "title": "Fates",
         "none": "No active fates.",
-        "estimated": "Est."
+        "estimated": "Est.",
+        "pot_tracker": {
+          "title": "Pot FATE (30-minute cycle)",
+          "active": "Active: {0}",
+          "next": "Next: {0} in {1}",
+          "ready": "Ready: {0}",
+          "unknown": "No Pot FATE has been observed in this cycle yet"
+        }
       }
     }
   }

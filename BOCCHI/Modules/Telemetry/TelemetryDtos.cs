@@ -30,6 +30,8 @@ public sealed class TelemetryMarker
 
     public uint? EventId { get; set; }
 
+    public uint? Level { get; set; }
+
     public string? Name { get; set; }
 
     public float X { get; set; }

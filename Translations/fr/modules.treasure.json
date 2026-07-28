@@ -10,6 +10,10 @@
           "label": "Tracer des lignes vers les coffres en argent",
           "tooltip": "Trace une ligne de la position de votre personnage vers les coffres en argent proches, hors combat."
         },
+        "draw_line_to_pot_chests": {
+          "label": "Tracer des lignes vers les coffres de pot",
+          "tooltip": "Trace une ligne de la position de votre personnage vers les coffres de pot proches, hors combat."
+        },
         "show_hunt_button": {
           "label": "Afficher le bouton de chasse au coffres"
         },

@@ -74,6 +74,8 @@ public class Treasure(IGameObject obj)
                 return TreasureType.Silver;
             case 1596:
                 return TreasureType.Bronze;
+            case 1598:
+                return TreasureType.Gold;
             default:
                 return TreasureType.Unknown;
         }
@@ -85,6 +87,7 @@ public class Treasure(IGameObject obj)
         {
             TreasureType.Bronze => TreasureModule.Bronze,
             TreasureType.Silver => TreasureModule.Silver,
+            TreasureType.Gold => TreasureModule.Gold,
             _ => TreasureModule.Unknown,
         };
     }
@@ -95,6 +98,7 @@ public class Treasure(IGameObject obj)
         {
             TreasureType.Bronze => "Bronze Treasure Coffer",
             TreasureType.Silver => "Silver Treasure Coffer",
+            TreasureType.Gold => "Pot Treasure Coffer",
             _ => "Unknown Treasure Coffer",
         };
     }

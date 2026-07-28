@@ -33,10 +33,13 @@ public class FatesModule : Module
 
     private readonly Alerter alerter;
 
+    public readonly PotFateTracker PotTracker;
+
     public FatesModule(Plugin plugin, Config config)
         : base(plugin, config)
     {
         alerter = new Alerter(this);
+        PotTracker = new PotFateTracker(this);
     }
 
     public override void Update(UpdateContext context)
@@ -59,5 +62,6 @@ public class FatesModule : Module
     {
         base.Dispose();
         alerter.Dispose();
+        PotTracker.Dispose();
     }
 }

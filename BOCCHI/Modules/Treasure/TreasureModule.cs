@@ -29,6 +29,8 @@ public class TreasureModule(Plugin _plugin, Config config) : Module(_plugin, con
 
     public readonly static Vector4 Silver = new(0.753f, 0.753f, 0.753f, 1f);
 
+    public readonly static Vector4 Gold = new(1f, 0.72f, 0.18f, 1f);
+
     public readonly static Vector4 Unknown = new(0.6f, 0.2f, 0.8f, 1f);
 
     public readonly TreasureTracker Tracker = new();

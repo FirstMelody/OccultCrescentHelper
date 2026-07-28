@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BOCCHI.Data;
@@ -16,11 +15,14 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Textures;
 using Dalamud.Bindings.ImGui;
 using ECommons.DalamudServices;
+using ECommons.GameFunctions;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -34,14 +36,21 @@ namespace BOCCHI.Modules.DevMap;
 [OcelotModule(900)]
 public class DevMapModule : Module
 {
-    private const int VkRightMouseButton = 0x02;
     private const string MarkerFileName = "northern_expedition_markers.json";
     private const string ForkedTowerEventObjFileName = "forked_tower_eventobjs.json";
     private const string EditWindowId = "编辑地图标注###BOCCHI_DevMap_Edit";
     private const float ChestMergeDistance = 4f;
     private const float EventMergeDistance = 8f;
+    private const float MonsterMergeDistance = 200f;
+    private const float MonsterDisplayClusterRadius = 230f;
+    private const int MonsterLabelsPerCluster = 4;
+    private const int MonsterLabelsPerColumn = 4;
+    private const float NearbyMonsterDistance = 100f;
+    private const float MonsterMovementTolerance = 0.15f;
     private const int ExpectedBuiltInTrapGroupCount = 47;
     private static readonly TimeSpan AutoScanInterval = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan MonsterStationaryDuration = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan MonsterTrackExpiry = TimeSpan.FromSeconds(5);
     private static readonly DevMarkerType[] EditableTypes =
     [
         DevMarkerType.SilverChest,
@@ -62,10 +71,8 @@ public class DevMapModule : Module
         DevMarkerType.Fate,
         DevMarkerType.CriticalEncounter,
         DevMarkerType.UnknownChest,
+        DevMarkerType.Monster,
     ];
-
-    [DllImport("user32.dll")]
-    private static extern short GetAsyncKeyState(int virtualKey);
 
     private readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -93,10 +100,16 @@ public class DevMapModule : Module
     private bool editorOpen;
     private bool towerTrapEditorOpen;
     private bool deleteConfirmationRequested;
-    private bool rightMouseWasDown;
-    private bool rightMousePressed;
+    private readonly Dictionary<uint, MonsterMovementTrack> monsterMovementTracks = [];
+    private List<MonsterMapCluster> cachedMonsterClusters = [];
+    private int cachedMonsterClusterFingerprint;
+    private uint cachedMonsterClusterTerritoryId;
+    private uint cachedMonsterClusterMapId;
     private bool warnedUnexpectedBuiltInTrapGroupCount;
     private DateTime nextAutoScanAt = DateTime.MinValue;
+    private DateTime nextReadOnlyScanAt = DateTime.MinValue;
+    private uint trackedMonsterTerritoryId;
+    private uint trackedMonsterMapId;
     private string? lastError;
     private nint areaMapAddonAddress;
 
@@ -314,7 +327,7 @@ public class DevMapModule : Module
         );
         ImGui.TextDisabled(
             $"本 Territory/Map 有 {customGroupCount} 个自定义雷组；"
-            + "右键已采集的雷候选点可新建或加入互斥组。"
+            + "候选点与互斥组现在只读，由插件自动采集和判定。"
         );
         ImGui.TextDisabled(
             "大地图图例：实心=本次已发现，空心=仍可能出现，×=同组已满足而排除；"
@@ -341,11 +354,12 @@ public class DevMapModule : Module
             ImGui.TextWrapped("提示：在北征之章内执行 /bocchi dev bind，可将当前区域永久绑定并在以后进入时自动打开插件。");
         }
 
-        ImGui.TextWrapped("附近出现的银/铜宝箱、好运胡萝卜、FATE 和 CE 会自动记录。胡萝卜生成的宝箱会与胡萝卜坐标合并，不会重复标注；未识别的箱子可在地图上右键改为罐子宝箱。");
-        DrawMarkerButton("设置当前位置为调查地点", DevMarkerType.InvestigationLocation);
-
+        ImGui.TextWrapped(
+            "附近出现的宝箱、好运胡萝卜、调查地点、静止未交战怪物、FATE 和 CE "
+            + "都会自动记录。地图点位为只读，不再提供手动新增、改类型或删除。"
+        );
         var count = markerFile.Markers.Count(m => m.TerritoryId == territoryId);
-        ImGui.TextDisabled($"本区域已保存 {count} 个标注。右键大地图上的标注可修改类型或删除；删除需二次确认。");
+        ImGui.TextDisabled($"本区域已自动保存 {count} 个只读标注。");
         ImGui.TextDisabled("打开大地图后，可用地图上方的 Linker 风格图标按钮分别开关各类标记。");
         ImGui.TextDisabled($"JSON: {MarkerPath}");
 
@@ -432,6 +446,28 @@ public class DevMapModule : Module
             }
         }
 
+        var investigationObjects = Svc.Objects.OfType<IEventObj>()
+            .Where(obj =>
+                obj.IsValid()
+                && IsValidPosition(obj.Position)
+                && obj.Name.TextValue.Contains("调查", StringComparison.Ordinal)
+            )
+            .ToList();
+        foreach (var investigation in investigationObjects)
+        {
+            if (RecordDetectedMarker(
+                    DevMarkerType.InvestigationLocation,
+                    investigation.Position,
+                    territoryId,
+                    mapId,
+                    name: investigation.Name.TextValue,
+                    baseId: investigation.BaseId
+                ))
+            {
+                recorded.Add(GetLabel(DevMarkerType.InvestigationLocation));
+            }
+        }
+
         foreach (var obj in Svc.Objects.Where(obj =>
                      obj.ObjectKind == ObjectKind.Treasure
                      && obj is { IsDead: false, IsTargetable: true }
@@ -443,6 +479,7 @@ public class DevMapModule : Module
             {
                 TreasureType.Silver => DevMarkerType.SilverChest,
                 TreasureType.Bronze => DevMarkerType.BronzeChest,
+                TreasureType.Gold => DevMarkerType.PotChest,
                 _ => DevMarkerType.UnknownChest,
             };
 
@@ -528,6 +565,229 @@ public class DevMapModule : Module
             .GroupBy(label => label)
             .Select(group => group.Count() == 1 ? group.Key : $"{group.Key}×{group.Count()}"));
         Svc.Chat.Print($"[BOCCHI] dev 自动记录：{summary}");
+    }
+
+    private unsafe void AutoScanReadOnlyMapContent()
+    {
+        var now = DateTime.UtcNow;
+        if (now < nextReadOnlyScanAt)
+        {
+            return;
+        }
+
+        nextReadOnlyScanAt = now + AutoScanInterval;
+        var territoryId = Svc.ClientState.TerritoryType;
+        var mapId = Svc.ClientState.MapId;
+        var isOutdoorOccultMap = (territoryId, mapId) is
+            (ZoneData.SOUTHHORN, 967) or (ZoneData.NORTHHORN, 1135);
+        if (!isOutdoorOccultMap
+            || ZoneData.IsInForkedTower()
+            || Svc.Objects.LocalPlayer is not { } player)
+        {
+            monsterMovementTracks.Clear();
+            trackedMonsterTerritoryId = territoryId;
+            trackedMonsterMapId = mapId;
+            return;
+        }
+
+        if (trackedMonsterTerritoryId != territoryId || trackedMonsterMapId != mapId)
+        {
+            monsterMovementTracks.Clear();
+            trackedMonsterTerritoryId = territoryId;
+            trackedMonsterMapId = mapId;
+        }
+
+        var originalMarkers = markerFile.Markers.Select(CloneMarker).ToList();
+        var changed = false;
+        foreach (var investigation in Svc.Objects.OfType<IEventObj>().Where(obj =>
+                     obj.IsValid()
+                     && IsValidPosition(obj.Position)
+                     && obj.Name.TextValue.Contains("调查", StringComparison.Ordinal)
+                 ))
+        {
+            changed |= RecordInvestigationMarker(
+                investigation.Position,
+                territoryId,
+                mapId,
+                investigation.BaseId,
+                investigation.Name.TextValue
+            );
+        }
+
+        var seenEntityIds = new HashSet<uint>();
+        foreach (var monster in Svc.Objects.OfType<IBattleNpc>())
+        {
+            if (monster.EntityId == 0
+                || monster.SubKind != (byte)BattleNpcSubKind.Combatant
+                || monster is not { IsDead: false, IsTargetable: true }
+                || !monster.IsValid()
+                || !monster.IsHostile()
+                || monster.HasTarget()
+                || Vector3.Distance(player.Position, monster.Position) > NearbyMonsterDistance
+                || !IsValidPosition(monster.Position))
+            {
+                continue;
+            }
+
+            var battleChara = (BattleChara*)monster.Address;
+            var level = (uint)battleChara->ForayInfo.Level;
+            var name = monster.Name.TextValue.Trim();
+            if (level == 0 || string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            seenEntityIds.Add(monster.EntityId);
+            if (!monsterMovementTracks.TryGetValue(monster.EntityId, out var track))
+            {
+                monsterMovementTracks[monster.EntityId] = new MonsterMovementTrack
+                {
+                    Position = monster.Position,
+                    StableSince = now,
+                    LastSeenAt = now,
+                };
+                continue;
+            }
+
+            track.LastSeenAt = now;
+            if (Vector3.Distance(track.Position, monster.Position) > MonsterMovementTolerance)
+            {
+                track.Position = monster.Position;
+                track.StableSince = now;
+                continue;
+            }
+
+            if (track.RecordedAtStablePosition
+                || now - track.StableSince < MonsterStationaryDuration)
+            {
+                continue;
+            }
+
+            changed |= RecordMonsterMarker(
+                monster.Position,
+                territoryId,
+                mapId,
+                monster.NameId,
+                level,
+                name
+            );
+            track.RecordedAtStablePosition = true;
+        }
+
+        foreach (var entityId in monsterMovementTracks
+                     .Where(entry =>
+                         !seenEntityIds.Contains(entry.Key)
+                         && now - entry.Value.LastSeenAt >= MonsterTrackExpiry)
+                     .Select(entry => entry.Key)
+                     .ToArray())
+        {
+            monsterMovementTracks.Remove(entityId);
+        }
+
+        if (!changed)
+        {
+            return;
+        }
+
+        if (!SaveMarkers())
+        {
+            markerFile.Markers = originalMarkers;
+            return;
+        }
+
+        lastError = null;
+    }
+
+    private bool RecordInvestigationMarker(
+        Vector3 position,
+        uint territoryId,
+        uint mapId,
+        uint baseId,
+        string name
+    )
+    {
+        var existing = markerFile.Markers.FirstOrDefault(marker =>
+            marker.Type == DevMarkerType.InvestigationLocation
+            && marker.TerritoryId == territoryId
+            && marker.MapId == mapId
+            && (baseId == 0 || marker.BaseId == 0 || marker.BaseId == baseId)
+            && HorizontalDistance(marker.Position, position) <= EventMergeDistance
+        );
+        if (existing != null)
+        {
+            var changed = false;
+            if (existing.BaseId == 0 && baseId != 0)
+            {
+                existing.BaseId = baseId;
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(existing.Name) && !string.IsNullOrWhiteSpace(name))
+            {
+                existing.Name = name;
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        markerFile.Markers.Add(new DevMapMarker
+        {
+            Type = DevMarkerType.InvestigationLocation,
+            BaseId = baseId,
+            Name = name,
+            TerritoryId = territoryId,
+            MapId = mapId,
+            X = position.X,
+            Y = position.Y,
+            Z = position.Z,
+        });
+        return true;
+    }
+
+    private bool RecordMonsterMarker(
+        Vector3 position,
+        uint territoryId,
+        uint mapId,
+        uint baseId,
+        uint level,
+        string name
+    )
+    {
+        var existing = markerFile.Markers.FirstOrDefault(marker =>
+            marker.Type == DevMarkerType.Monster
+            && marker.TerritoryId == territoryId
+            && marker.MapId == mapId
+            && marker.BaseId == baseId
+            && HorizontalDistance(marker.Position, position) <= MonsterMergeDistance
+        );
+        if (existing != null)
+        {
+            var observationCount = Math.Max(1, existing.ObservationCount);
+            var combinedCount = observationCount + 1;
+            existing.X = (existing.X * observationCount + position.X) / combinedCount;
+            existing.Y = (existing.Y * observationCount + position.Y) / combinedCount;
+            existing.Z = (existing.Z * observationCount + position.Z) / combinedCount;
+            existing.ObservationCount = combinedCount;
+            existing.Level = level;
+            existing.Name = name;
+            return true;
+        }
+
+        markerFile.Markers.Add(new DevMapMarker
+        {
+            Type = DevMarkerType.Monster,
+            BaseId = baseId,
+            Level = level,
+            ObservationCount = 1,
+            Name = name,
+            TerritoryId = territoryId,
+            MapId = mapId,
+            X = position.X,
+            Y = position.Y,
+            Z = position.Z,
+        });
+        return true;
     }
 
     private void AutoScanForkedTowerEventObjects(uint territoryId, uint mapId)
@@ -709,7 +969,8 @@ public class DevMapModule : Module
         uint territoryId,
         uint mapId,
         uint eventId = 0,
-        string? name = null
+        string? name = null,
+        uint baseId = 0
     )
     {
         if (!IsValidPosition(position))
@@ -825,6 +1086,7 @@ public class DevMapModule : Module
         {
             Type = type,
             EventId = eventId,
+            BaseId = baseId,
             Name = name ?? "",
             TerritoryId = territoryId,
             MapId = mapId,
@@ -873,6 +1135,9 @@ public class DevMapModule : Module
             Id = marker.Id,
             Type = marker.Type,
             EventId = marker.EventId,
+            BaseId = marker.BaseId,
+            Level = marker.Level,
+            ObservationCount = marker.ObservationCount,
             Name = marker.Name,
             TerritoryId = marker.TerritoryId,
             MapId = marker.MapId,
@@ -887,7 +1152,57 @@ public class DevMapModule : Module
     {
         if (ImGui.Button($"{label}##DevMap_{type}"))
         {
-            AddCurrentPosition(type);
+            if (type == DevMarkerType.InvestigationLocation)
+            {
+                CaptureTargetInvestigationLocation();
+            }
+            else
+            {
+                AddCurrentPosition(type);
+            }
+        }
+    }
+
+    private void CaptureTargetInvestigationLocation()
+    {
+        var player = Svc.Objects.LocalPlayer;
+        var investigation = Svc.Targets.Target as IEventObj
+                            ?? Svc.Objects.OfType<IEventObj>()
+                                .Where(obj =>
+                                    obj.IsValid()
+                                    && obj.Name.TextValue.Contains(
+                                        "调查",
+                                        StringComparison.Ordinal
+                                    ))
+                                .OrderBy(obj =>
+                                    player == null
+                                        ? float.MaxValue
+                                        : Vector3.Distance(player.Position, obj.Position))
+                                .FirstOrDefault();
+        if (investigation == null
+            || player == null
+            || Vector3.Distance(player.Position, investigation.Position) > 30f)
+        {
+            lastError = "请先选中 30 yalms 内的调查地点对象。";
+            return;
+        }
+
+        if (RecordDetectedMarker(
+                DevMarkerType.InvestigationLocation,
+                investigation.Position,
+                Svc.ClientState.TerritoryType,
+                Svc.ClientState.MapId,
+                name: investigation.Name.TextValue,
+                baseId: investigation.BaseId
+            )
+            && SaveMarkers())
+        {
+            lastError = null;
+            Svc.Chat.Print(
+                $"[BOCCHI] 已记录调查地点：BaseId={investigation.BaseId}，"
+                + $"坐标=({investigation.Position.X:F2}, {investigation.Position.Y:F2}, "
+                + $"{investigation.Position.Z:F2})。"
+            );
         }
     }
 
@@ -1077,7 +1392,7 @@ public class DevMapModule : Module
 
             if (MigrateMarkers())
             {
-                if (sourceVersion < 3)
+                if (sourceVersion < 9)
                 {
                     CreateMigrationBackup(MarkerPath, sourceVersion);
                 }
@@ -1095,12 +1410,22 @@ public class DevMapModule : Module
 
     private bool MigrateMarkers()
     {
-        var changed = markerFile.Version < 3;
-        markerFile.Version = 3;
+        var changed = markerFile.Version < 9;
+        markerFile.Version = 9;
+
+        changed |= markerFile.Markers.RemoveAll(marker =>
+            marker.Type == DevMarkerType.InvestigationLocation
+            && marker.Name?.Contains("魔路", StringComparison.Ordinal) == true
+        ) > 0;
 
         foreach (var marker in markerFile.Markers)
         {
             marker.Name ??= "";
+            if (marker.ObservationCount < 1)
+            {
+                marker.ObservationCount = 1;
+                changed = true;
+            }
 
             if (marker.Id == Guid.Empty)
             {
@@ -1140,15 +1465,18 @@ public class DevMapModule : Module
         var kept = new List<DevMapMarker>();
         foreach (var marker in markerFile.Markers.OrderBy(marker => marker.CreatedAt))
         {
-            var mergeDistance = marker.Type is DevMarkerType.Fate
-                or DevMarkerType.CriticalEncounter
-                or DevMarkerType.InvestigationLocation
-                ? EventMergeDistance
-                : ChestMergeDistance;
+            var mergeDistance = marker.Type switch
+            {
+                DevMarkerType.Fate or DevMarkerType.CriticalEncounter => EventMergeDistance,
+                DevMarkerType.Monster => MonsterMergeDistance,
+                _ => ChestMergeDistance,
+            };
             var duplicate = kept.FirstOrDefault(existing =>
                 existing.TerritoryId == marker.TerritoryId
                 && existing.MapId == marker.MapId
                 && AreMergeableMarkerTypes(existing.Type, marker.Type)
+                && (marker.Type != DevMarkerType.Monster
+                    || marker.BaseId == existing.BaseId)
                 && (marker.Type is not (DevMarkerType.Fate or DevMarkerType.CriticalEncounter)
                     || (marker.EventId != 0 && existing.EventId == marker.EventId)
                     || (marker.EventId == 0 && existing.EventId == 0))
@@ -1157,6 +1485,25 @@ public class DevMapModule : Module
 
             if (duplicate != null)
             {
+                if (marker.Type == DevMarkerType.Monster)
+                {
+                    var duplicateCount = Math.Max(1, duplicate.ObservationCount);
+                    var markerCount = Math.Max(1, marker.ObservationCount);
+                    var combinedCount = duplicateCount + markerCount;
+                    duplicate.X =
+                        (duplicate.X * duplicateCount + marker.X * markerCount) / combinedCount;
+                    duplicate.Y =
+                        (duplicate.Y * duplicateCount + marker.Y * markerCount) / combinedCount;
+                    duplicate.Z =
+                        (duplicate.Z * duplicateCount + marker.Z * markerCount) / combinedCount;
+                    duplicate.ObservationCount = combinedCount;
+                    duplicate.Level = marker.Level != 0 ? marker.Level : duplicate.Level;
+                    if (!string.IsNullOrWhiteSpace(marker.Name))
+                    {
+                        duplicate.Name = marker.Name;
+                    }
+                }
+
                 if (duplicate.Type == DevMarkerType.UnknownChest
                     && marker.Type != DevMarkerType.UnknownChest)
                 {
@@ -1175,6 +1522,11 @@ public class DevMapModule : Module
                     && !string.IsNullOrWhiteSpace(marker.Name))
                 {
                     duplicate.Name = marker.Name;
+                }
+
+                if (duplicate.Level == 0 && marker.Level != 0)
+                {
+                    duplicate.Level = marker.Level;
                 }
 
                 changed = true;
@@ -1276,15 +1628,11 @@ public class DevMapModule : Module
     private void DrawDevMapUi()
     {
         GetModule<ForkedTowerModule>().EnsureRunLifecycle();
-
+        AutoScanReadOnlyMapContent();
         // Ocelot's normal update loop is deliberately limited to South Horn.
         // Running this throttled scan from UiBuilder keeps dev collection active
         // in a force-bound North territory without enabling every South module.
         AutoScan();
-
-        var rightMouseDown = (GetAsyncKeyState(VkRightMouseButton) & 0x8000) != 0;
-        rightMousePressed = rightMouseDown && !rightMouseWasDown;
-        rightMouseWasDown = rightMouseDown;
 
         ImGui.SetNextWindowPos(new Vector2(-10000f, -10000f), ImGuiCond.Always);
         ImGui.SetNextWindowSize(Vector2.One, ImGuiCond.Always);
@@ -1297,8 +1645,6 @@ public class DevMapModule : Module
 
         ImGui.Begin("##BOCCHI_DevMapHost", flags);
         DrawAreaMapOverlay();
-        DrawMarkerEditor();
-        DrawTowerTrapGroupEditor();
         ImGui.End();
 
         DrawMarkerFilterOverlay();
@@ -1382,6 +1728,7 @@ public class DevMapModule : Module
 
         var drawList = ImGui.GetForegroundDrawList();
         drawList.PushClipRect(clipMin, clipMax, true);
+        var monsterMarkers = new List<MonsterMapMarker>();
 
         foreach (var marker in markerFile.Markers.Where(m =>
                      m.TerritoryId == territoryId
@@ -1389,6 +1736,12 @@ public class DevMapModule : Module
                      && IsMarkerVisible(m.Type)
                  ))
         {
+            if (marker.Type == DevMarkerType.Monster)
+            {
+                monsterMarkers.Add(new MonsterMapMarker(marker, false));
+                continue;
+            }
+
             var mapPosition = new Vector2(marker.X, marker.Z) * sheetScale + sheetOffset;
             var screenPosition = center
                                  - (pan + new Vector2(1024f)) * panZoom
@@ -1399,7 +1752,13 @@ public class DevMapModule : Module
                 continue;
             }
 
-            DrawMarker(drawList, marker, screenPosition, uiScale);
+            DrawMarker(
+                drawList,
+                marker,
+                screenPosition,
+                uiScale,
+                false
+            );
         }
 
         foreach (var sharedMarker in sharedMarkers.Where(marker =>
@@ -1433,25 +1792,51 @@ public class DevMapModule : Module
             else if (TryGetSharedDevMarkerType(sharedMarker, out var markerType)
                      && IsMarkerVisible(markerType))
             {
-                DrawMarker(
-                    drawList,
-                    new DevMapMarker
-                    {
-                        Type = markerType,
-                        EventId = sharedMarker.EventId ?? 0,
-                        Name = sharedMarker.Name ?? "",
-                        TerritoryId = sharedMarker.TerritoryId,
-                        MapId = sharedMarker.MapId,
-                        X = sharedMarker.X,
-                        Y = sharedMarker.Y,
-                        Z = sharedMarker.Z,
-                    },
-                    screenPosition,
-                    uiScale,
-                    false,
-                    true
-                );
+                var devMarker = new DevMapMarker
+                {
+                    Type = markerType,
+                    EventId = sharedMarker.EventId ?? 0,
+                    BaseId = sharedMarker.BaseId ?? 0,
+                    Level = sharedMarker.Level ?? 0,
+                    Name = sharedMarker.Name ?? "",
+                    TerritoryId = sharedMarker.TerritoryId,
+                    MapId = sharedMarker.MapId,
+                    X = sharedMarker.X,
+                    Y = sharedMarker.Y,
+                    Z = sharedMarker.Z,
+                };
+                if (markerType == DevMarkerType.Monster)
+                {
+                    monsterMarkers.Add(new MonsterMapMarker(devMarker, true));
+                }
+                else
+                {
+                    DrawMarker(
+                        drawList,
+                        devMarker,
+                        screenPosition,
+                        uiScale,
+                        false,
+                        true
+                    );
+                }
             }
+        }
+
+        foreach (var cluster in GetMonsterClusters(monsterMarkers, territoryId, mapId))
+        {
+            var mapPosition = new Vector2(cluster.Center.X, cluster.Center.Z) * sheetScale
+                              + sheetOffset;
+            var screenPosition = center
+                                 - (pan + new Vector2(1024f)) * panZoom
+                                 + (mapPosition + new Vector2(1024f)) * markerZoom;
+            if (screenPosition.X < clipMin.X || screenPosition.X > clipMax.X
+                || screenPosition.Y < clipMin.Y || screenPosition.Y > clipMax.Y)
+            {
+                continue;
+            }
+
+            DrawMonsterCluster(drawList, cluster, screenPosition, uiScale);
         }
 
         if (PluginConfig.DevModeEnabled
@@ -1927,9 +2312,6 @@ public class DevMapModule : Module
                 : "候选点位";
         var group = candidate.GroupName.Length > 0 ? candidate.GroupName : "未编组";
         var runCount = candidate.SourceRecord?.ObservedRunIds.Count ?? 0;
-        var editHint = candidate.IsBuiltInGroup || candidate.SourceRecord == null
-            ? ""
-            : "\n右键设置互斥编组";
         ImGui.SetTooltip(
             $"{(candidate.Type == ForkedTowerEventObjType.BigTrap ? "大雷" : "小雷")} · {state}\n"
             + $"编组: {group}（{candidate.ObservedInGroup}/{candidate.MaxActive}）\n"
@@ -1937,16 +2319,7 @@ public class DevMapModule : Module
             + $"机制半径: {candidate.MechanicRadius:F1}\n"
             + $"累计观察塔次: {runCount}"
             + (hasConflict ? "\n警告：本次观察数超过编组上限" : "")
-            + editHint
         );
-
-        if (rightMousePressed
-            && !candidate.IsBuiltInGroup
-            && candidate.SourceRecord != null)
-        {
-            pendingTowerTrapEdit = candidate.SourceRecord;
-            towerTrapEditorOpen = true;
-        }
     }
 
     private void DrawForkedTowerEventObject(
@@ -2051,14 +2424,8 @@ public class DevMapModule : Module
             + $"坐标: ({record.X:F2}, {record.Y:F2}, {record.Z:F2})\n"
             + $"HitboxRadius: {record.HitboxRadius:F2}\n"
             + $"机制半径: {mechanicRadiusText}\n"
-            + $"TowerRun: {record.TowerRunId}\n"
-            + "右键识别为雷或设置编组"
+            + $"TowerRun: {record.TowerRunId}"
         );
-        if (rightMousePressed)
-        {
-            pendingTowerTrapEdit = record;
-            towerTrapEditorOpen = true;
-        }
     }
 
     private static Vector4 GetForkedTowerEventObjColor(ForkedTowerEventObjRecord record)
@@ -2226,11 +2593,14 @@ public class DevMapModule : Module
         var enabled = PluginConfig.DevMapVisibleMarkers.HasFlag(visibility);
         var activeColor = ImGuiColors.HealerGreen;
         var inactiveColor = ImGuiColors.ParsedGrey;
-        var icon = Svc.Texture.GetFromGameIcon(new GameIconLookup(iconIds[type])).GetWrapOrEmpty();
+        var hasIcon = iconIds.TryGetValue(type, out var iconId);
+        var icon = hasIcon
+            ? Svc.Texture.GetFromGameIcon(new GameIconLookup(iconId)).GetWrapOrEmpty()
+            : null;
 
         ImGui.PushID($"DevMapFilter_{type}");
         ImGui.PushStyleColor(ImGuiCol.Button, enabled ? activeColor : inactiveColor);
-        var clicked = icon.Handle != nint.Zero
+        var clicked = hasIcon && icon != null && icon.Handle != default
             ? ImGui.ImageButton(
                 icon.Handle,
                 new Vector2(32f * ImGuiHelpers.GlobalScale)
@@ -2281,6 +2651,7 @@ public class DevMapModule : Module
             DevMarkerType.InvestigationLocation =>
                 DevMapMarkerVisibility.InvestigationLocation,
             DevMarkerType.UnknownChest => DevMapMarkerVisibility.UnknownChest,
+            DevMarkerType.Monster => DevMapMarkerVisibility.Monster,
             _ => DevMapMarkerVisibility.None,
         };
     }
@@ -2303,6 +2674,13 @@ public class DevMapModule : Module
     )
     {
         type = default;
+        if (string.Equals(marker.Source, "monster", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(marker.Kind, "Monster", StringComparison.OrdinalIgnoreCase))
+        {
+            type = DevMarkerType.Monster;
+            return true;
+        }
+
         if (!string.Equals(marker.Source, "dev-map", StringComparison.OrdinalIgnoreCase)
             || !Enum.TryParse(marker.Kind, true, out type))
         {
@@ -2321,7 +2699,8 @@ public class DevMapModule : Module
             or DevMarkerType.Fate
             or DevMarkerType.CriticalEncounter
             or DevMarkerType.InvestigationLocation
-            or DevMarkerType.UnknownChest;
+            or DevMarkerType.UnknownChest
+            or DevMarkerType.Monster;
     }
 
     private static bool IsSharedTrapMarker(TelemetryMarker marker)
@@ -2368,15 +2747,19 @@ public class DevMapModule : Module
             return false;
         }
 
-        var mergeDistance = type is DevMarkerType.Fate
-            or DevMarkerType.CriticalEncounter
-            or DevMarkerType.InvestigationLocation
-                ? EventMergeDistance
-                : ChestMergeDistance;
+        var mergeDistance = type switch
+        {
+            DevMarkerType.Fate or DevMarkerType.CriticalEncounter => EventMergeDistance,
+            DevMarkerType.Monster => MonsterMergeDistance,
+            _ => ChestMergeDistance,
+        };
         return markerFile.Markers.Any(local =>
             local.TerritoryId == sharedMarker.TerritoryId
             && local.MapId == sharedMarker.MapId
             && (local.Type == type || AreMergeableMarkerTypes(local.Type, type))
+            && (type != DevMarkerType.Monster
+                || sharedMarker.BaseId is not { } baseId
+                || local.BaseId == baseId)
             && Vector3.Distance(local.Position, position) <= mergeDistance
         );
     }
@@ -2434,7 +2817,18 @@ public class DevMapModule : Module
         bool shared = false
     )
     {
+        if (marker.Type == DevMarkerType.Monster)
+        {
+            DrawMonsterMarker(drawList, marker, center, uiScale, shared);
+            return;
+        }
+
         var size = Math.Clamp(26f * uiScale, 20f, 40f);
+        if (marker.Type is DevMarkerType.FortuneCarrot or DevMarkerType.FortuneCarrotChest)
+        {
+            size *= 0.72f;
+        }
+
         var half = new Vector2(size / 2f);
         var min = center - half;
         var max = center + half;
@@ -2485,7 +2879,7 @@ public class DevMapModule : Module
         var eventId = marker.EventId > 0 ? $"\nEventId: {marker.EventId}" : "";
         ImGui.SetTooltip(
             $"{markerName}{eventId}\n"
-            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n右键编辑"
+            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n只读自动采集标记"
         );
         if (!editable && shared)
         {
@@ -2496,17 +2890,236 @@ public class DevMapModule : Module
             );
         }
 
-        if (editable && rightMousePressed)
+    }
+
+    private static void DrawMonsterMarker(
+        ImDrawListPtr drawList,
+        DevMapMarker marker,
+        Vector2 center,
+        float uiScale,
+        bool shared
+    )
+    {
+        var label = marker.Level > 0
+            ? $"{marker.Level} {marker.Name}"
+            : marker.Name;
+        if (string.IsNullOrWhiteSpace(label))
         {
-            pendingEdit = marker;
-            editorOpen = true;
-            deleteConfirmationRequested = false;
-            DebugLog.Information(
-                "Dev map marker right-clicked: {Type} ({X}, {Y}, {Z})",
-                marker.Type,
-                marker.X,
-                marker.Y,
-                marker.Z
+            label = "怪物";
+        }
+
+        var font = ImGui.GetFont();
+        var fontSize = Math.Clamp(ImGui.GetFontSize() * 0.72f * uiScale, 9f, 14f);
+        var textSize = ImGui.CalcTextSize(label) * (fontSize / ImGui.GetFontSize());
+        var textPosition = center - textSize / 2f;
+        drawList.AddText(font, fontSize, textPosition + Vector2.One, 0xE0000000, label);
+        drawList.AddText(font, fontSize, textPosition, 0xFFE8F2D0, label);
+
+        var padding = new Vector2(3f * uiScale, 2f * uiScale);
+        var min = textPosition - padding;
+        var max = textPosition + textSize + padding;
+        if (!ImGui.IsMouseHoveringRect(min, max, false))
+        {
+            return;
+        }
+
+        drawList.AddRect(min, max, 0xFFFFFFFF, 2f, ImDrawFlags.None, 1f);
+        ImGui.SetTooltip(
+            $"{label}\nBaseId: {marker.BaseId}\n"
+            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
+            + (shared ? "社区共享怪物点（只读）" : "本地记录的静止未交战怪物")
+        );
+    }
+
+    private IReadOnlyList<MonsterMapCluster> GetMonsterClusters(
+        IReadOnlyCollection<MonsterMapMarker> markers,
+        uint territoryId,
+        uint mapId
+    )
+    {
+        var hash = new HashCode();
+        hash.Add(markers.Count);
+        foreach (var entry in markers
+                     .OrderBy(entry => entry.Shared)
+                     .ThenBy(entry => entry.Marker.BaseId)
+                     .ThenBy(entry => entry.Marker.X)
+                     .ThenBy(entry => entry.Marker.Z)
+                     .ThenBy(entry => entry.Marker.Level)
+                     .ThenBy(entry => entry.Marker.Name, StringComparer.Ordinal))
+        {
+            hash.Add(entry.Marker.BaseId);
+            hash.Add(entry.Marker.Level);
+            hash.Add(entry.Marker.Name, StringComparer.Ordinal);
+            hash.Add(entry.Marker.X);
+            hash.Add(entry.Marker.Y);
+            hash.Add(entry.Marker.Z);
+            hash.Add(entry.Shared);
+        }
+
+        var fingerprint = hash.ToHashCode();
+        if (cachedMonsterClusterTerritoryId == territoryId
+            && cachedMonsterClusterMapId == mapId
+            && cachedMonsterClusterFingerprint == fingerprint)
+        {
+            return cachedMonsterClusters;
+        }
+
+        var clusters = new List<MonsterMapCluster>();
+        foreach (var marker in markers
+                     .OrderBy(entry => entry.Marker.X)
+                     .ThenBy(entry => entry.Marker.Z)
+                     .ThenBy(entry => entry.Marker.BaseId))
+        {
+            MonsterMapCluster? bestCluster = null;
+            var bestDistance = float.MaxValue;
+            foreach (var cluster in clusters)
+            {
+                var mergedMembers = cluster.Members.Append(marker).ToList();
+                if (mergedMembers
+                        .Select(member => (member.Marker.Level, member.Marker.Name))
+                        .Distinct()
+                        .Count() > MonsterLabelsPerCluster)
+                {
+                    continue;
+                }
+
+                var mergedCenter = MonsterMapCluster.CalculateCenter(mergedMembers);
+                if (mergedMembers.Any(member =>
+                        Vector2.Distance(
+                            new Vector2(member.Marker.X, member.Marker.Z),
+                            new Vector2(mergedCenter.X, mergedCenter.Z)
+                        ) > MonsterDisplayClusterRadius
+                    ))
+                {
+                    continue;
+                }
+
+                var distance = Vector2.Distance(
+                    new Vector2(cluster.Center.X, cluster.Center.Z),
+                    new Vector2(marker.Marker.X, marker.Marker.Z)
+                );
+                if (distance < bestDistance)
+                {
+                    bestCluster = cluster;
+                    bestDistance = distance;
+                }
+            }
+
+            if (bestCluster == null)
+            {
+                clusters.Add(new MonsterMapCluster([marker]));
+                continue;
+            }
+
+            var index = clusters.IndexOf(bestCluster);
+            clusters[index] = new MonsterMapCluster(bestCluster.Members.Append(marker).ToList());
+        }
+
+        cachedMonsterClusterTerritoryId = territoryId;
+        cachedMonsterClusterMapId = mapId;
+        cachedMonsterClusterFingerprint = fingerprint;
+        cachedMonsterClusters = clusters;
+        return cachedMonsterClusters;
+    }
+
+    private static void DrawMonsterCluster(
+        ImDrawListPtr drawList,
+        MonsterMapCluster cluster,
+        Vector2 center,
+        float uiScale
+    )
+    {
+        var labels = cluster.Members
+            .Select(member => member.Marker)
+            .GroupBy(marker => (marker.Level, marker.Name))
+            .Select(group =>
+            {
+                var (level, name) = group.Key;
+                var safeName = string.IsNullOrWhiteSpace(name) ? "怪物" : name;
+                return level > 0 ? $"{level} {safeName}" : safeName;
+            })
+            .OrderBy(label => label, StringComparer.Ordinal)
+            .ToList();
+        if (labels.Count == 0)
+        {
+            labels.Add("怪物");
+        }
+
+        var font = ImGui.GetFont();
+        var fontSize = Math.Clamp(ImGui.GetFontSize() * 0.68f * uiScale, 8f, 13f);
+        var lineHeight = fontSize + Math.Max(1.5f, 2f * uiScale);
+        var textSizes = labels
+            .Select(label => ImGui.CalcTextSize(label) * (fontSize / ImGui.GetFontSize()))
+            .ToList();
+        var columnCount = (labels.Count + MonsterLabelsPerColumn - 1) / MonsterLabelsPerColumn;
+        var columnGap = Math.Max(8f, 10f * uiScale);
+        var columnWidths = Enumerable.Range(0, columnCount)
+            .Select(column => Enumerable.Range(
+                    column * MonsterLabelsPerColumn,
+                    Math.Min(MonsterLabelsPerColumn, labels.Count - column * MonsterLabelsPerColumn)
+                )
+                .Max(index => textSizes[index].X))
+            .ToList();
+        var totalWidth = columnWidths.Sum() + columnGap * (columnCount - 1);
+        var rowCount = Math.Min(MonsterLabelsPerColumn, labels.Count);
+        var totalHeight = lineHeight * rowCount;
+        var top = center.Y - totalHeight / 2f;
+        var columnLeft = center.X - totalWidth / 2f;
+        for (var index = 0; index < labels.Count; index++)
+        {
+            var column = index / MonsterLabelsPerColumn;
+            var row = index % MonsterLabelsPerColumn;
+            var textPosition = new Vector2(
+                columnLeft + (columnWidths[column] - textSizes[index].X) / 2f,
+                top + row * lineHeight
+            );
+            drawList.AddText(font, fontSize, textPosition + Vector2.One, 0xE0000000, labels[index]);
+            drawList.AddText(font, fontSize, textPosition, 0xFFE8F2D0, labels[index]);
+            if (row == MonsterLabelsPerColumn - 1)
+            {
+                columnLeft += columnWidths[column] + columnGap;
+            }
+        }
+
+        var padding = new Vector2(3f * uiScale, 2f * uiScale);
+        var min = new Vector2(center.X - totalWidth / 2f, top) - padding;
+        var max = new Vector2(center.X + totalWidth / 2f, top + totalHeight) + padding;
+        if (!ImGui.IsMouseHoveringRect(min, max, false))
+        {
+            return;
+        }
+
+        drawList.AddRect(min, max, 0xFFFFFFFF, 2f, ImDrawFlags.None, 1f);
+        var source = cluster.Members.Any(member => member.Shared)
+            ? "含社区共享统计（只读）"
+            : "本地记录的静止未交战怪物";
+        ImGui.SetTooltip(
+            $"{string.Join("\n", labels)}\n"
+            + $"区域中心: ({cluster.Center.X:F2}, {cluster.Center.Y:F2}, {cluster.Center.Z:F2})\n"
+            + source
+        );
+    }
+
+    private sealed record MonsterMapMarker(DevMapMarker Marker, bool Shared);
+
+    private sealed class MonsterMapCluster
+    {
+        public List<MonsterMapMarker> Members { get; }
+
+        public Vector3 Center { get; }
+
+        public MonsterMapCluster(List<MonsterMapMarker> members)
+        {
+            Members = members;
+            Center = CalculateCenter(members);
+        }
+
+        public static Vector3 CalculateCenter(IReadOnlyCollection<MonsterMapMarker> members)
+        {
+            return new Vector3(
+                members.Average(member => member.Marker.X),
+                members.Average(member => member.Marker.Y),
+                members.Average(member => member.Marker.Z)
             );
         }
     }
@@ -2914,6 +3527,8 @@ public class DevMapModule : Module
         else
         {
             marker.EventId = 0;
+            marker.BaseId = 0;
+            marker.Level = 0;
             marker.Name = "";
         }
 
@@ -2971,6 +3586,7 @@ public class DevMapModule : Module
             DevMarkerType.CriticalEncounter => "CE",
             DevMarkerType.InvestigationLocation => "调查地点",
             DevMarkerType.UnknownChest => "未识别宝箱",
+            DevMarkerType.Monster => "静止未交战怪物",
             _ => type.ToString(),
         };
     }
@@ -2988,6 +3604,7 @@ public class DevMapModule : Module
             DevMarkerType.CriticalEncounter => "CE",
             DevMarkerType.InvestigationLocation => "查",
             DevMarkerType.UnknownChest => "箱",
+            DevMarkerType.Monster => "怪",
             _ => "?",
         };
     }
@@ -3005,8 +3622,20 @@ public class DevMapModule : Module
             DevMarkerType.CriticalEncounter => new Vector4(0.82f, 0.4f, 1f, 1f),
             DevMarkerType.InvestigationLocation => new Vector4(0.25f, 0.9f, 1f, 1f),
             DevMarkerType.UnknownChest => new Vector4(0.72f, 0.5f, 0.9f, 1f),
+            DevMarkerType.Monster => new Vector4(0.82f, 0.95f, 0.68f, 1f),
             _ => Vector4.One,
         };
+    }
+
+    private sealed class MonsterMovementTrack
+    {
+        public Vector3 Position { get; set; }
+
+        public DateTime StableSince { get; set; }
+
+        public DateTime LastSeenAt { get; set; }
+
+        public bool RecordedAtStablePosition { get; set; }
     }
 
     public override void Dispose()

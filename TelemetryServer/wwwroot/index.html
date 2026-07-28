@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BOCCHI 地图遥测</title>
-  <link rel="stylesheet" href="./site.css?v=20260728-shared1">
+  <title>新月岛北征之章点位图</title>
+  <link rel="stylesheet" href="./site.css?v=20260728-monster1">
 </head>
 <body>
   <main>
     <header>
       <div>
         <p class="eyebrow">OCCULT CRESCENT COMMUNITY DATA</p>
-        <h1>BOCCHI 地图遥测</h1>
+        <h1>新月岛北征之章点位图</h1>
         <p class="warning">极度不稳定 · 随时更新 · 谨慎使用</p>
       </div>
       <span id="health" class="health">正在连接</span>
@@ -20,12 +20,6 @@
     <section class="privacy">
       这里只展示用户主动同意后上传的游戏内容坐标。服务不会收集角色名、CID、账号、
       服务器、聊天内容或玩家实时位置。
-    </section>
-
-    <section class="cards">
-      <article><span>唯一点位</span><strong id="unique">—</strong></article>
-      <article><span>累计报告</span><strong id="reports">—</strong></article>
-      <article><span>当前筛选</span><strong id="visible">—</strong></article>
     </section>
 
     <section class="panel controls">
@@ -44,14 +38,14 @@
       <article class="panel plot-panel">
         <div class="panel-title">
           <h2 id="mapTitle">游戏地图点位</h2>
-          <span>真实客户端地图 · 颜色按类型区分 · 悬停查看详情</span>
+          <span>真实客户端地图 · 右侧可逐类开关 · 悬停查看详情</span>
         </div>
         <canvas id="plot"></canvas>
         <div id="tooltip" class="tooltip" hidden></div>
       </article>
 
       <article class="panel">
-        <div class="panel-title"><h2>类型统计</h2></div>
+        <div class="panel-title"><h2>类型统计与显示开关</h2></div>
         <div id="kinds" class="kinds"></div>
       </article>
     </section>
@@ -60,13 +54,13 @@
       <div class="panel-title"><h2>最近聚合点位</h2><span>最多显示 500 条</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>类型</th><th>Territory / Map</th><th>名称 / ID</th><th>坐标 X, Y, Z</th><th>报告</th></tr></thead>
+          <thead><tr><th>类型</th><th>Territory / Map</th><th>名称 / ID</th><th>坐标 X, Y, Z</th><th>独立来源</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
     </section>
     <p class="map-note">地图纹理由本地 FFXIV 客户端导出，仅用于插件点位采集、校准与社区资料整理。</p>
   </main>
-  <script src="./site.js?v=20260728-shared1"></script>
+  <script src="./site.js?v=20260728-density1"></script>
 </body>
 </html>

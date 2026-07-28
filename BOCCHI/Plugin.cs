@@ -78,6 +78,15 @@ public sealed class Plugin : OcelotPlugin
             configChanged = true;
         }
 
+        if (Config.Version < 7)
+        {
+            Config.DevMapVisibleMarkers |=
+                global::BOCCHI.Modules.DevMap.DevMapMarkerVisibility.InvestigationLocation
+                | global::BOCCHI.Modules.DevMap.DevMapMarkerVisibility.Monster;
+            Config.Version = 7;
+            configChanged = true;
+        }
+
         if (configChanged)
         {
             plugin.SavePluginConfig(Config);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Ocelot.Config.Attributes;
 using Ocelot.Modules;
 
@@ -24,4 +25,8 @@ public class FatesConfig : ModuleConfig
     [Checkbox] public bool AlertCaputMortuum { get; set; } = false;
 
     [Checkbox] public bool AlertOrpiment { get; set; } = false;
+
+    [Checkbox] public bool ShowPotFateTimerOnDtr { get; set; } = true;
+
+    public Dictionary<string, long> PotFateSpawnTimes { get; set; } = [];
 }

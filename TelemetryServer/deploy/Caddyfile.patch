@@ -11,7 +11,9 @@
 +				CDN-Cache-Control "no-store"
 +				Cloudflare-CDN-Cache-Control "no-store"
 +			}
-+			reverse_proxy 127.0.0.1:8787
++			reverse_proxy 127.0.0.1:8787 {
++				header_up X-Forwarded-For {client_ip}
++			}
 +		}
 +
  		# FF14 Arena Next simulator, served from a prebuilt root-path image.

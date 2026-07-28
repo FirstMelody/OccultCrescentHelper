@@ -11,6 +11,10 @@
           "label": "绘制白银宝箱指引线",
           "tooltip": "非战斗状态下，从角色位置向附近的白银宝箱绘制指引线"
         },
+        "draw_line_to_pot_chests": {
+          "label": "绘制罐子宝箱指引线",
+          "tooltip": "非战斗状态下，从角色位置向附近的罐子宝箱绘制指引线"
+        },
         "show_hunt_button": {
           "label": "显示宝藏搜索按钮"
         },

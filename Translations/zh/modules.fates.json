@@ -34,12 +34,23 @@
         "alert_orpiment": {
           "label": "通知黄色半魂晶的FATE",
           "tooltip": "当掉落黄色半魂晶的FATE出现时播放提示音"
+        },
+        "show_pot_fate_timer_on_dtr": {
+          "label": "在服务器信息栏显示Pot FATE计时器",
+          "tooltip": "根据同一章节内上一只Pot FATE的出现时间，显示下一只的30分钟倒计时"
         }
       },
       "panel": {
         "title": "FATE",
         "none": "当前无活跃的FATE",
-        "estimated": "预计"
+        "estimated": "预计",
+        "pot_tracker": {
+          "title": "Pot FATE（30分钟循环）",
+          "active": "进行中：{0}",
+          "next": "下一只：{0}，剩余 {1}",
+          "ready": "可刷新：{0}",
+          "unknown": "尚未观测到本次循环的Pot FATE"
+        }
       }
     }
   }

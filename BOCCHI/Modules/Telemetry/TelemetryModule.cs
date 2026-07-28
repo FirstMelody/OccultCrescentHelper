@@ -18,13 +18,13 @@ namespace BOCCHI.Modules.Telemetry;
 [OcelotModule(950)]
 public sealed class TelemetryModule : Module
 {
-    private const int CurrentConsentVersion = 1;
+    private const int CurrentConsentVersion = 2;
     private const string Endpoint =
         "https://h.lionwebsite.xyz/bocchi-telemetry/api/v1/markers";
     private const string SharedMapEndpoint =
         "https://h.lionwebsite.xyz/bocchi-telemetry/api/v1/markers?limit=10000";
-    private static readonly TimeSpan UploadInterval = TimeSpan.FromSeconds(15);
-    private static readonly TimeSpan DownloadInterval = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan UploadInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan DownloadInterval = TimeSpan.FromSeconds(5);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -114,7 +114,10 @@ public sealed class TelemetryModule : Module
             SetEnabled(enabled);
         }
 
-        ImGui.TextWrapped("仅上传地图标记、事件/对象 ID、游戏内名称和坐标；不上传角色或账号信息。");
+        ImGui.TextWrapped(
+            "仅上传地图标记、事件/对象 ID、静止未交战怪物的名称/等级和坐标；"
+            + "不上传角色或账号信息。"
+        );
         ImGui.TextDisabled(GetStatus());
         var showSharedMarkers = Config.ShowSharedMarkers;
         if (ImGui.Checkbox(
@@ -159,8 +162,13 @@ public sealed class TelemetryModule : Module
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, SharedMapEndpoint);
-            request.Headers.TryAddWithoutValidation("Cache-Control", "no-cache, no-store");
+            var endpoint = $"{SharedMapEndpoint}&_={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            request.Headers.TryAddWithoutValidation(
+                "Cache-Control",
+                "no-cache, no-store, max-age=0"
+            );
+            request.Headers.TryAddWithoutValidation("Pragma", "no-cache");
             using var response = await httpClient.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
@@ -181,7 +189,7 @@ public sealed class TelemetryModule : Module
             sharedMarkers = (payload?.Markers ?? [])
                 .Where(IsFinite)
                 .ToArray();
-            sharedStatus = $"社区地图：{sharedMarkers.Count} 个聚合点（10 秒同步）";
+            sharedStatus = $"社区地图：{sharedMarkers.Count} 个聚合点（5 秒同步）";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -218,7 +226,8 @@ public sealed class TelemetryModule : Module
 
         ImGui.TextWrapped(
             "是否帮助收集蜃景幻界地图资料？开启后，BOCCHI 会自动上传已记录的宝箱、胡萝卜、"
-            + "FATE、CE、调查点和 Tower EventObj 的游戏内容坐标。"
+            + "FATE、CE、调查地点、静止未交战怪物的名称/等级，"
+            + "以及 Tower EventObj 的游戏内容坐标。"
         );
         ImGui.Spacing();
         ImGui.TextWrapped(
@@ -305,11 +314,13 @@ public sealed class TelemetryModule : Module
                 .Where(IsFinite)
                 .Select(marker => new TelemetryMarker
                 {
-                    Source = "dev-map",
+                    Source = marker.Type == DevMarkerType.Monster ? "monster" : "dev-map",
                     Kind = marker.Type.ToString(),
                     TerritoryId = marker.TerritoryId,
                     MapId = marker.MapId,
+                    BaseId = marker.BaseId == 0 ? null : marker.BaseId,
                     EventId = marker.EventId == 0 ? null : marker.EventId,
+                    Level = marker.Level == 0 ? null : marker.Level,
                     Name = EmptyToNull(marker.Name),
                     X = marker.X,
                     Y = marker.Y,

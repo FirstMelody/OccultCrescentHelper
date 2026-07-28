@@ -6,6 +6,7 @@ const state = {
   selectedMap: null,
   mapImages: new Map(),
   markerIcons: new Map(),
+  hiddenKinds: new Set(),
 };
 const palette = ["#ffcc66", "#f1787d", "#72d6c9", "#87a9ff", "#c892ff", "#ff9f5a", "#88d66c", "#e5e7eb"];
 const kindIconIds = {
@@ -23,7 +24,15 @@ const $ = id => document.getElementById(id);
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
 async function getJson(path) {
-  const response = await fetch(path, { headers: { accept: "application/json" } });
+  const separator = path.includes("?") ? "&" : "?";
+  const response = await fetch(`${path}${separator}_=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      accept: "application/json",
+      "cache-control": "no-cache, no-store, max-age=0",
+      pragma: "no-cache",
+    },
+  });
   if (!response.ok) throw new Error(`${response.status}`);
   return response.json();
 }
@@ -42,7 +51,10 @@ function iconIdForKind(kind) {
 }
 
 function isDrawableMarker(marker) {
-  return isTrapKind(marker.kind) || iconIdForKind(marker.kind) !== null;
+  return isTrapKind(marker.kind)
+    || iconIdForKind(marker.kind) !== null
+    || marker.kind === "Monster"
+    || marker.kind === "InvestigationLocation";
 }
 
 function kindVisual(kind) {
@@ -104,14 +116,13 @@ async function refresh() {
       query.set("territoryId", map.territoryId);
       query.set("mapId", map.mapId);
     }
+    const statsQuery = new URLSearchParams(query);
+    statsQuery.delete("limit");
     const [stats, data] = await Promise.all([
-      getJson("./api/v1/stats"),
+      getJson(`./api/v1/stats?${statsQuery}`),
       getJson(`./api/v1/markers?${query}`),
     ]);
     state.markers = data.markers;
-    $("unique").textContent = stats.uniqueMarkers.toLocaleString();
-    $("reports").textContent = stats.totalReports.toLocaleString();
-    $("visible").textContent = state.markers.length.toLocaleString();
     $("health").textContent = "服务在线";
     $("health").className = "health ok";
     renderKinds(stats.kinds);
@@ -125,15 +136,19 @@ async function refresh() {
 
 function renderKinds(kinds) {
   $("kinds").innerHTML = kinds.map(item => `
-    <div class="kind">
+    <button class="kind kind-toggle${state.hiddenKinds.has(item.kind) ? " is-hidden" : ""}"
+      type="button" data-kind="${esc(item.kind)}"
+      aria-pressed="${state.hiddenKinds.has(item.kind) ? "false" : "true"}">
       ${kindVisual(item.kind)}
       <span title="${esc(item.kind)}">${esc(item.kind)}</span>
       <strong>${Number(item.count).toLocaleString()}</strong>
-    </div>`).join("");
+    </button>`).join("");
 }
 
 function renderRows() {
-  $("rows").innerHTML = state.markers.map(marker => {
+  $("rows").innerHTML = state.markers
+    .filter(marker => !state.hiddenKinds.has(marker.kind))
+    .map(marker => {
     const id = marker.name || [marker.baseId && `Base ${marker.baseId}`, marker.eventId && `Event ${marker.eventId}`].filter(Boolean).join(" / ") || "—";
     return `<tr>
       <td><span class="row-kind">${kindVisual(marker.kind)}${esc(marker.kind)}</span></td>
@@ -142,7 +157,7 @@ function renderRows() {
       <td>${marker.x.toFixed(2)}, ${marker.y.toFixed(2)}, ${marker.z.toFixed(2)}</td>
       <td>${marker.reportCount}</td>
     </tr>`;
-  }).join("");
+    }).join("");
 }
 
 function loadMapImage(map) {
@@ -179,6 +194,52 @@ function markerToPixel(marker, map, width, height) {
   };
 }
 
+const monsterDisplayClusterRadius = 230;
+const monsterLabelsPerCluster = 4;
+const monsterLabelsPerColumn = 4;
+
+function clusterMonsterMarkers(markers) {
+  const centerOf = members => ({
+    x: members.reduce((sum, marker) => sum + marker.x, 0) / members.length,
+    y: members.reduce((sum, marker) => sum + marker.y, 0) / members.length,
+    z: members.reduce((sum, marker) => sum + marker.z, 0) / members.length,
+  });
+  const clusters = [];
+  const sortedMarkers = [...markers].sort((left, right) =>
+    left.x - right.x || left.z - right.z || (left.baseId ?? 0) - (right.baseId ?? 0)
+  );
+  for (const marker of sortedMarkers) {
+    let bestCluster = null;
+    let bestDistance = Infinity;
+    for (const cluster of clusters) {
+      const members = [...cluster.members, marker];
+      const center = centerOf(members);
+      const distinctLabels = new Set(
+        members.map(member => `${member.level ?? 0}|${member.name ?? ""}`)
+      );
+      if (distinctLabels.size > monsterLabelsPerCluster) continue;
+      if (members.some(member =>
+        Math.hypot(member.x - center.x, member.z - center.z) > monsterDisplayClusterRadius
+      )) continue;
+      const distance = Math.hypot(marker.x - cluster.center.x, marker.z - cluster.center.z);
+      if (distance < bestDistance) {
+        bestCluster = cluster;
+        bestDistance = distance;
+      }
+    }
+    if (!bestCluster) {
+      clusters.push({
+        members: [marker],
+        center: { x: marker.x, y: marker.y, z: marker.z },
+      });
+    } else {
+      bestCluster.members.push(marker);
+      bestCluster.center = centerOf(bestCluster.members);
+    }
+  }
+  return clusters;
+}
+
 async function drawMap() {
   const canvas = $("plot");
   const map = state.selectedMap;
@@ -198,7 +259,9 @@ async function drawMap() {
   ctx.fillStyle = "#07101a12";
   ctx.fillRect(0, 0, width, height);
 
-  const drawableMarkers = state.markers.filter(isDrawableMarker);
+  const drawableMarkers = state.markers.filter(marker =>
+    isDrawableMarker(marker) && !state.hiddenKinds.has(marker.kind)
+  );
   const iconIds = [
     ...new Set(
       drawableMarkers
@@ -210,7 +273,7 @@ async function drawMap() {
     await Promise.all(iconIds.map(async iconId => [iconId, await loadMarkerIcon(iconId)]))
   );
   const iconSize = Math.max(20, Math.min(34, width / 28));
-  state.points = drawableMarkers.map(marker => {
+  state.points = drawableMarkers.filter(marker => marker.kind !== "Monster").map(marker => {
     const point = markerToPixel(marker, map, width, height);
     if (isTrapKind(marker.kind)) {
       const mechanicRadius = marker.mechanicRadius > 0
@@ -231,22 +294,97 @@ async function drawMap() {
       ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+    } else if (marker.kind === "Monster") {
+      const label = `${marker.level ?? "?"} ${marker.name || "怪物"}`;
+      const fontSize = Math.max(9, Math.min(13, width / 75));
+      ctx.font = `600 ${fontSize}px "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#071009dd";
+      ctx.fillStyle = "#e8f2d0";
+      ctx.strokeText(label, point.x, point.y);
+      ctx.fillText(label, point.x, point.y);
+      point.hitRadius = Math.max(12, ctx.measureText(label).width / 2);
     } else {
       const icon = loadedIcons.get(iconIdForKind(marker.kind));
       if (icon) {
+        const renderedIconSize = marker.kind === "FortuneCarrot"
+          ? iconSize * .72
+          : iconSize;
         ctx.drawImage(
           icon,
-          point.x - iconSize / 2,
-          point.y - iconSize / 2,
-          iconSize,
-          iconSize
+          point.x - renderedIconSize / 2,
+          point.y - renderedIconSize / 2,
+          renderedIconSize,
+          renderedIconSize
         );
+      } else {
+        ctx.fillStyle = colorFor(marker.kind);
+        ctx.strokeStyle = "#10151f";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
       }
     }
     return { ...point, marker };
   });
-  $("visible").textContent = drawableMarkers.length.toLocaleString();
-
+  for (const cluster of clusterMonsterMarkers(
+    drawableMarkers.filter(marker => marker.kind === "Monster")
+  )) {
+    const labels = [...new Set(cluster.members.map(marker => {
+      const name = marker.name || "怪物";
+      return marker.level ? `${marker.level} ${name}` : name;
+    }))].sort((left, right) => left.localeCompare(right, "zh-CN"));
+    const point = markerToPixel(cluster.center, map, width, height);
+    const fontSize = Math.max(8, Math.min(12, width / 80));
+    const lineHeight = fontSize + 2;
+    ctx.font = `600 ${fontSize}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#071009dd";
+    ctx.fillStyle = "#e8f2d0";
+    const columnCount = Math.ceil(labels.length / monsterLabelsPerColumn);
+    const columnGap = Math.max(10, fontSize);
+    const labelWidths = labels.map(label => ctx.measureText(label).width);
+    const columnWidths = Array.from({ length: columnCount }, (_, column) =>
+      Math.max(...labelWidths.slice(
+        column * monsterLabelsPerColumn,
+        (column + 1) * monsterLabelsPerColumn
+      ))
+    );
+    const totalWidth = columnWidths.reduce((sum, value) => sum + value, 0)
+      + columnGap * (columnCount - 1);
+    let columnLeft = point.x - totalWidth / 2;
+    labels.forEach((label, index) => {
+      const column = Math.floor(index / monsterLabelsPerColumn);
+      const row = index % monsterLabelsPerColumn;
+      const rowsInColumn = Math.min(
+        monsterLabelsPerColumn,
+        labels.length - column * monsterLabelsPerColumn
+      );
+      const x = columnLeft + columnWidths[column] / 2;
+      const y = point.y + (row - (rowsInColumn - 1) / 2) * lineHeight;
+      ctx.strokeText(label, x, y);
+      ctx.fillText(label, x, y);
+      if (row === rowsInColumn - 1) {
+        columnLeft += columnWidths[column] + columnGap;
+      }
+    });
+    state.points.push({
+      ...point,
+      marker: cluster.members[0],
+      monsterCluster: cluster.members,
+      hitRadius: Math.max(
+        12,
+        totalWidth / 2,
+        Math.min(labels.length, monsterLabelsPerColumn) * lineHeight / 2
+      ),
+    });
+  }
   ctx.strokeStyle = "#12182688";
   ctx.lineWidth = 1;
   ctx.strokeRect(.5, .5, width - 1, height - 1);
@@ -255,11 +393,37 @@ async function drawMap() {
 $("plot").addEventListener("mousemove", event => {
   const rect = event.currentTarget.getBoundingClientRect();
   const x = event.clientX - rect.left, y = event.clientY - rect.top;
-  const hit = state.points.find(point => Math.hypot(point.x - x, point.y - y) < 10);
+  const hit = state.points.find(point =>
+    Math.hypot(point.x - x, point.y - y) < (point.hitRadius ?? 10)
+  );
   const tip = $("tooltip");
   if (!hit) { tip.hidden = true; return; }
   const marker = hit.marker;
-  tip.innerHTML = `<strong>${esc(marker.kind)}</strong><br>${esc(marker.name || "")}<br>
+  if (hit.monsterCluster) {
+    const monsters = [...new Set(hit.monsterCluster.map(item => {
+      const levelText = item.level ? `${item.level} ` : "";
+      return `${levelText}${item.name || "怪物"}`;
+    }))].sort((left, right) => left.localeCompare(right, "zh-CN"));
+    const provisionalText = hit.monsterCluster.some(item => item.reportCount < 2)
+      ? "<br>含单来源暂定统计"
+      : "";
+    const clusterCenter = hit.monsterCluster.reduce((sum, item) => ({
+      x: sum.x + item.x / hit.monsterCluster.length,
+      y: sum.y + item.y / hit.monsterCluster.length,
+      z: sum.z + item.z / hit.monsterCluster.length,
+    }), { x: 0, y: 0, z: 0 });
+    tip.innerHTML = `<strong>怪物生成区域</strong><br>${monsters.map(esc).join("<br>")}${provisionalText}<br>
+      T${marker.territoryId} / M${marker.mapId}<br>中心 X ${clusterCenter.x.toFixed(2)} · Y ${clusterCenter.y.toFixed(2)} · Z ${clusterCenter.z.toFixed(2)}`;
+    tip.style.left = `${Math.min(x + 18, rect.width - 290)}px`;
+    tip.style.top = `${Math.max(8, y - 22)}px`;
+    tip.hidden = false;
+    return;
+  }
+  const level = marker.level ? ` · 等级 ${marker.level}` : "";
+  const provisional = marker.kind === "Monster" && marker.reportCount < 2
+    ? " · 单来源暂定"
+    : "";
+  tip.innerHTML = `<strong>${esc(marker.kind)}${level}${provisional}</strong><br>${esc(marker.name || "")}<br>
     T${marker.territoryId} / M${marker.mapId}<br>X ${marker.x.toFixed(2)} · Y ${marker.y.toFixed(2)} · Z ${marker.z.toFixed(2)}`;
   tip.style.left = `${Math.min(x + 18, rect.width - 290)}px`;
   tip.style.top = `${Math.max(8, y - 22)}px`;
@@ -268,8 +432,24 @@ $("plot").addEventListener("mousemove", event => {
 $("plot").addEventListener("mouseleave", () => $("tooltip").hidden = true);
 $("mapSelect").addEventListener("change", refresh);
 $("refresh").addEventListener("click", refresh);
+$("kinds").addEventListener("click", event => {
+  const button = event.target.closest("[data-kind]");
+  if (!button) return;
+  const kind = button.dataset.kind;
+  if (state.hiddenKinds.has(kind)) state.hiddenKinds.delete(kind);
+  else state.hiddenKinds.add(kind);
+  renderKinds(
+    [...new Set(state.markers.map(marker => marker.kind))]
+      .map(kindName => ({
+        kind: kindName,
+        count: state.markers.filter(marker => marker.kind === kindName).length,
+      }))
+  );
+  renderRows();
+  drawMap();
+});
 window.addEventListener("resize", () => drawMap());
 refresh();
 setInterval(() => {
   if (document.visibilityState === "visible") refresh();
-}, 10000);
+}, 5000);

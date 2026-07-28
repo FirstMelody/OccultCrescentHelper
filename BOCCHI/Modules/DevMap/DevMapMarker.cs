@@ -12,6 +12,12 @@ public class DevMapMarker
 
     public uint EventId { get; set; }
 
+    public uint BaseId { get; set; }
+
+    public uint Level { get; set; }
+
+    public int ObservationCount { get; set; } = 1;
+
     public string Name { get; set; } = "";
 
     public uint TerritoryId { get; set; }

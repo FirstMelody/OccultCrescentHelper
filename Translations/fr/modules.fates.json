@@ -30,6 +30,10 @@
           "label": null,
           "tooltip": null
         },
+        "show_pot_fate_timer_on_dtr": {
+          "label": "Afficher le minuteur des Aléas Pot dans la barre serveur",
+          "tooltip": "Affiche le compte à rebours de 30 minutes jusqu'au prochain Aléa Pot"
+        },
         "log_spawn": {
           "label": null,
           "tooltip": null
@@ -39,7 +43,14 @@
       "panel": {
         "estimated": "Estimé",
         "none": "Pas d'Aléa actifs.",
-        "title": "Aléas"
+        "title": "Aléas",
+        "pot_tracker": {
+          "title": "Aléa Pot (cycle de 30 minutes)",
+          "active": "Actif : {0}",
+          "next": "Suivant : {0} dans {1}",
+          "ready": "Prêt : {0}",
+          "unknown": "Aucun Aléa Pot observé dans ce cycle"
+        }
       }
     }
   }

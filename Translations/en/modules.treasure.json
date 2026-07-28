@@ -11,6 +11,10 @@
           "label": "Draw lines to silver coffers",
           "tooltip": "Render a line from your character's position to nearby silver coffers, while out of combat."
         },
+        "draw_line_to_pot_chests": {
+          "label": "Draw lines to pot coffers",
+          "tooltip": "Render a line from your character's position to nearby pot coffers, while out of combat."
+        },
         "show_hunt_button": {
           "label": "Show Treasure Hunt Button"
         },
