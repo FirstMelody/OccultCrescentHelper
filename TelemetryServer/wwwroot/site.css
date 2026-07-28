@@ -51,8 +51,21 @@ h2 { font-size: 16px; margin: 0; }
 canvas { background: #dad1af; border-radius: 8px; display: block; width: 100%; aspect-ratio: 1 / 1; height: auto; }
 .tooltip { background: #05070bee; border: 1px solid var(--line); border-radius: 8px; max-width: 280px; padding: 8px 10px; pointer-events: none; position: absolute; z-index: 3; }
 .kinds { display: grid; gap: 8px; }
-.kind { align-items: center; display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; }
+.kind { align-items: center; display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; }
 .swatch { border-radius: 3px; height: 12px; width: 12px; }
+.kind-icon { height: 24px; object-fit: contain; vertical-align: middle; width: 24px; }
+.trap-icon {
+  background: #ff3030;
+  border: 2px solid #760000;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px #ff303036;
+  display: inline-block;
+  height: 12px;
+  margin: 0 6px;
+  width: 12px;
+}
+.row-kind { align-items: center; display: inline-flex; gap: 7px; white-space: nowrap; }
+.row-kind .swatch { display: inline-block; }
 .kind span:nth-child(2) { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
 .table-panel { padding-bottom: 10px; }
 .map-note { color: var(--muted); font-size: 12px; margin: 14px 4px 0; text-align: center; }

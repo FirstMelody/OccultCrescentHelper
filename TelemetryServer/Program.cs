@@ -175,7 +175,7 @@ app.MapGet(
     "/api/v1/markers",
     async (uint? territoryId, uint? mapId, int? limit) =>
     {
-        var take = Math.Clamp(limit ?? 500, 1, 1000);
+        var take = Math.Clamp(limit ?? 500, 1, 10000);
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();

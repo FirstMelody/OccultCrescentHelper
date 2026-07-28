@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -20,10 +21,14 @@ public sealed class TelemetryModule : Module
     private const int CurrentConsentVersion = 1;
     private const string Endpoint =
         "https://h.lionwebsite.xyz/bocchi-telemetry/api/v1/markers";
-    private static readonly TimeSpan UploadInterval = TimeSpan.FromMinutes(1);
+    private const string SharedMapEndpoint =
+        "https://h.lionwebsite.xyz/bocchi-telemetry/api/v1/markers?limit=10000";
+    private static readonly TimeSpan UploadInterval = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan DownloadInterval = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
     };
 
     private readonly HttpClient httpClient = new()
@@ -32,9 +37,13 @@ public sealed class TelemetryModule : Module
     };
     private readonly CancellationTokenSource disposeToken = new();
     private DateTime nextUploadAt = DateTime.MinValue;
+    private DateTime nextDownloadAt = DateTime.MinValue;
     private Task? uploadTask;
+    private Task? downloadTask;
+    private IReadOnlyList<TelemetryMarker> sharedMarkers = Array.Empty<TelemetryMarker>();
     private string? lastUploadedFingerprint;
     private string status = "尚未上传";
+    private string sharedStatus = "尚未同步";
     private bool consentPopupRequested;
 
     public override TelemetryConfig Config
@@ -90,6 +99,11 @@ public sealed class TelemetryModule : Module
         return Config.Enabled ? $"已开启；{status}" : "已关闭";
     }
 
+    public IReadOnlyList<TelemetryMarker> GetSharedMarkersSnapshot()
+    {
+        return sharedMarkers;
+    }
+
     public override bool RenderMainUi(RenderContext context)
     {
         ImGui.Separator();
@@ -102,12 +116,32 @@ public sealed class TelemetryModule : Module
 
         ImGui.TextWrapped("仅上传地图标记、事件/对象 ID、游戏内名称和坐标；不上传角色或账号信息。");
         ImGui.TextDisabled(GetStatus());
+        var showSharedMarkers = Config.ShowSharedMarkers;
+        if (ImGui.Checkbox(
+                "显示社区共享地图标记##BOCCHI_ShowSharedTelemetryMarkers",
+                ref showSharedMarkers
+            ))
+        {
+            Config.ShowSharedMarkers = showSharedMarkers;
+            PluginConfig.Save();
+            nextDownloadAt = DateTime.MinValue;
+        }
+
+        ImGui.TextDisabled(Config.ShowSharedMarkers ? sharedStatus : "社区共享标记已隐藏");
         return true;
     }
 
     private void DrawTelemetry()
     {
         DrawConsentPopup();
+
+        if (Config.ShowSharedMarkers
+            && DateTime.UtcNow >= nextDownloadAt
+            && downloadTask is not { IsCompleted: false })
+        {
+            nextDownloadAt = DateTime.UtcNow + DownloadInterval;
+            downloadTask = DownloadSharedMapAsync(disposeToken.Token);
+        }
 
         if (!Config.Enabled
             || Config.ConsentVersion < CurrentConsentVersion
@@ -119,6 +153,44 @@ public sealed class TelemetryModule : Module
 
         nextUploadAt = DateTime.UtcNow + UploadInterval;
         uploadTask = UploadSnapshotAsync(disposeToken.Token);
+    }
+
+    private async Task DownloadSharedMapAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, SharedMapEndpoint);
+            request.Headers.TryAddWithoutValidation("Cache-Control", "no-cache, no-store");
+            using var response = await httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken
+            );
+            if (!response.IsSuccessStatusCode)
+            {
+                sharedStatus = $"社区地图同步失败：HTTP {(int)response.StatusCode}";
+                return;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var payload = await JsonSerializer.DeserializeAsync<TelemetryMarkerResponse>(
+                stream,
+                JsonOptions,
+                cancellationToken
+            );
+            sharedMarkers = (payload?.Markers ?? [])
+                .Where(IsFinite)
+                .ToArray();
+            sharedStatus = $"社区地图：{sharedMarkers.Count} 个聚合点（10 秒同步）";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            sharedStatus = "社区地图同步失败，稍后重试";
+            Svc.Log.Warning(exception, "BOCCHI shared telemetry download failed");
+        }
     }
 
     private void DrawConsentPopup()
@@ -302,6 +374,15 @@ public sealed class TelemetryModule : Module
                && float.IsFinite(record.X)
                && float.IsFinite(record.Y)
                && float.IsFinite(record.Z);
+    }
+
+    private static bool IsFinite(TelemetryMarker marker)
+    {
+        return marker.TerritoryId > 0
+               && marker.MapId > 0
+               && float.IsFinite(marker.X)
+               && float.IsFinite(marker.Y)
+               && float.IsFinite(marker.Z);
     }
 
     private static string? EmptyToNull(string value)

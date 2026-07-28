@@ -13,6 +13,7 @@ namespace BOCCHI.Data;
 public static class ZoneData
 {
     public const uint SOUTHHORN = 1252;
+    public const uint NORTHHORN = 1346;
 
     private static Config? config;
 
@@ -40,8 +41,9 @@ public static class ZoneData
 
     public static bool IsNorthernExpeditionTerritory(uint territoryId)
     {
-        return config?.NorthernExpeditionTerritoryId is > 0
-               && territoryId == config.NorthernExpeditionTerritoryId;
+        return territoryId == NORTHHORN
+               || (config?.NorthernExpeditionTerritoryId is > 0
+                   && territoryId == config.NorthernExpeditionTerritoryId);
     }
 
     public static bool IsInNorthernExpedition()

@@ -5,8 +5,20 @@ const state = {
   maps: [],
   selectedMap: null,
   mapImages: new Map(),
+  markerIcons: new Map(),
 };
 const palette = ["#ffcc66", "#f1787d", "#72d6c9", "#87a9ff", "#c892ff", "#ff9f5a", "#88d66c", "#e5e7eb"];
+const kindIconIds = {
+  BronzeChest: 60356,
+  SilverChest: 60355,
+  PotChest: 60354,
+  UnknownChest: 60354,
+  FortuneCarrotChest: 60354,
+  FortuneCarrot: 25207,
+  InvestigationLocation: 60474,
+  Fate: 60502,
+  CriticalEncounter: 63909,
+};
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -19,6 +31,29 @@ async function getJson(path) {
 function colorFor(kind) {
   if (!state.colors.has(kind)) state.colors.set(kind, palette[state.colors.size % palette.length]);
   return state.colors.get(kind);
+}
+
+function isTrapKind(kind) {
+  return kind === "SmallTrap" || kind === "BigTrap";
+}
+
+function iconIdForKind(kind) {
+  return kindIconIds[kind] ?? null;
+}
+
+function isDrawableMarker(marker) {
+  return isTrapKind(marker.kind) || iconIdForKind(marker.kind) !== null;
+}
+
+function kindVisual(kind) {
+  const iconId = iconIdForKind(kind);
+  if (iconId !== null) {
+    return `<img class="kind-icon" src="./icons/${iconId}.webp" alt="">`;
+  }
+  if (isTrapKind(kind)) {
+    return `<span class="trap-icon" aria-hidden="true"></span>`;
+  }
+  return `<span class="swatch" style="background:${colorFor(kind)}"></span>`;
 }
 
 function normalizeMap(raw) {
@@ -91,7 +126,7 @@ async function refresh() {
 function renderKinds(kinds) {
   $("kinds").innerHTML = kinds.map(item => `
     <div class="kind">
-      <span class="swatch" style="background:${colorFor(item.kind)}"></span>
+      ${kindVisual(item.kind)}
       <span title="${esc(item.kind)}">${esc(item.kind)}</span>
       <strong>${Number(item.count).toLocaleString()}</strong>
     </div>`).join("");
@@ -101,7 +136,7 @@ function renderRows() {
   $("rows").innerHTML = state.markers.map(marker => {
     const id = marker.name || [marker.baseId && `Base ${marker.baseId}`, marker.eventId && `Event ${marker.eventId}`].filter(Boolean).join(" / ") || "—";
     return `<tr>
-      <td><span class="swatch" style="background:${colorFor(marker.kind)};display:inline-block;margin-right:7px"></span>${esc(marker.kind)}</td>
+      <td><span class="row-kind">${kindVisual(marker.kind)}${esc(marker.kind)}</span></td>
       <td>${marker.territoryId} / ${marker.mapId}</td>
       <td>${esc(id)}</td>
       <td>${marker.x.toFixed(2)}, ${marker.y.toFixed(2)}, ${marker.z.toFixed(2)}</td>
@@ -119,6 +154,18 @@ function loadMapImage(map) {
     image.src = `./maps/${map.image}`;
   });
   state.mapImages.set(map.image, promise);
+  return promise;
+}
+
+function loadMarkerIcon(iconId) {
+  if (state.markerIcons.has(iconId)) return state.markerIcons.get(iconId);
+  const promise = new Promise(resolve => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = `./icons/${iconId}.webp`;
+  });
+  state.markerIcons.set(iconId, promise);
   return promise;
 }
 
@@ -151,33 +198,54 @@ async function drawMap() {
   ctx.fillStyle = "#07101a12";
   ctx.fillRect(0, 0, width, height);
 
-  state.points = state.markers.map(marker => {
+  const drawableMarkers = state.markers.filter(isDrawableMarker);
+  const iconIds = [
+    ...new Set(
+      drawableMarkers
+        .map(marker => iconIdForKind(marker.kind))
+        .filter(iconId => iconId !== null)
+    ),
+  ];
+  const loadedIcons = new Map(
+    await Promise.all(iconIds.map(async iconId => [iconId, await loadMarkerIcon(iconId)]))
+  );
+  const iconSize = Math.max(20, Math.min(34, width / 28));
+  state.points = drawableMarkers.map(marker => {
     const point = markerToPixel(marker, map, width, height);
-    const color = colorFor(marker.kind);
-    if (marker.mechanicRadius > 0) {
-      const radius = marker.mechanicRadius * (map.sizeFactor / 100) / 2048 * width;
-      ctx.fillStyle = `${color}28`;
-      ctx.strokeStyle = `${color}bb`;
-      ctx.lineWidth = 1.5;
+    if (isTrapKind(marker.kind)) {
+      const mechanicRadius = marker.mechanicRadius > 0
+        ? marker.mechanicRadius
+        : marker.kind === "BigTrap" ? 30 : 7;
+      const radius = mechanicRadius * (map.sizeFactor / 100) / 2048 * width;
+      ctx.fillStyle = "#ff303028";
+      ctx.strokeStyle = "#ff3030e8";
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(point.x, point.y, Math.max(3, radius), 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+      ctx.fillStyle = "#ff3030";
+      ctx.strokeStyle = "#4a0000";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      const icon = loadedIcons.get(iconIdForKind(marker.kind));
+      if (icon) {
+        ctx.drawImage(
+          icon,
+          point.x - iconSize / 2,
+          point.y - iconSize / 2,
+          iconSize,
+          iconSize
+        );
+      }
     }
-    ctx.fillStyle = color;
-    ctx.strokeStyle = "#111827dd";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fill();
-    ctx.strokeStyle = "#ffffffee";
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
-    ctx.stroke();
     return { ...point, marker };
   });
+  $("visible").textContent = drawableMarkers.length.toLocaleString();
 
   ctx.strokeStyle = "#12182688";
   ctx.lineWidth = 1;
@@ -202,3 +270,6 @@ $("mapSelect").addEventListener("change", refresh);
 $("refresh").addEventListener("click", refresh);
 window.addEventListener("resize", () => drawMap());
 refresh();
+setInterval(() => {
+  if (document.visibilityState === "visible") refresh();
+}, 10000);

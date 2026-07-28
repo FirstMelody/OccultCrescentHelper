@@ -9,4 +9,6 @@ public class TelemetryConfig : ModuleConfig
     public int ConsentVersion { get; set; }
 
     public bool IncludeTowerObjects { get; set; } = true;
+
+    public bool ShowSharedMarkers { get; set; } = true;
 }

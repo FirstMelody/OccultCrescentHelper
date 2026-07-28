@@ -10,6 +10,7 @@ using BOCCHI.Data;
 using BOCCHI.Data.Traps;
 using BOCCHI.Enums;
 using BOCCHI.Modules.ForkedTower;
+using BOCCHI.Modules.Telemetry;
 using BOCCHI.Modules.Treasure;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
@@ -1278,10 +1279,13 @@ public class DevMapModule : Module
 
     private unsafe void DrawAreaMapOverlay()
     {
-        if (!PluginConfig.DevModeEnabled
-            || (markerFile.Markers.Count == 0
-                && (!PluginConfig.ShowForkedTowerEventObjectsOnMap
-                    || forkedTowerEventObjFile.EventObjects.Count == 0)))
+        var sharedMarkers = GetSharedMarkers();
+        var hasSharedDrawableMarkers = sharedMarkers.Any(IsSharedDrawableMarker);
+        if (markerFile.Markers.Count == 0
+            && !hasSharedDrawableMarkers
+            && (!PluginConfig.DevModeEnabled
+                || !PluginConfig.ShowForkedTowerEventObjectsOnMap
+                || forkedTowerEventObjFile.EventObjects.Count == 0))
         {
             return;
         }
@@ -1364,7 +1368,60 @@ public class DevMapModule : Module
             DrawMarker(drawList, marker, screenPosition, uiScale);
         }
 
-        if (PluginConfig.ShowForkedTowerEventObjectsOnMap)
+        foreach (var sharedMarker in sharedMarkers.Where(marker =>
+                     marker.TerritoryId == territoryId
+                     && marker.MapId == mapId
+                     && IsSharedDrawableMarker(marker)
+                     && !HasLocalEquivalent(marker)
+                 ))
+        {
+            var mapPosition = new Vector2(sharedMarker.X, sharedMarker.Z) * sheetScale
+                              + sheetOffset;
+            var screenPosition = center
+                                 - (pan + new Vector2(1024f)) * panZoom
+                                 + (mapPosition + new Vector2(1024f)) * markerZoom;
+            if (screenPosition.X < clipMin.X || screenPosition.X > clipMax.X
+                || screenPosition.Y < clipMin.Y || screenPosition.Y > clipMax.Y)
+            {
+                continue;
+            }
+
+            if (IsSharedTrapMarker(sharedMarker))
+            {
+                DrawSharedTrapMarker(
+                    drawList,
+                    sharedMarker,
+                    screenPosition,
+                    uiScale,
+                    sheetScale * markerZoom
+                );
+            }
+            else if (TryGetSharedDevMarkerType(sharedMarker, out var markerType)
+                     && IsMarkerVisible(markerType))
+            {
+                DrawMarker(
+                    drawList,
+                    new DevMapMarker
+                    {
+                        Type = markerType,
+                        EventId = sharedMarker.EventId ?? 0,
+                        Name = sharedMarker.Name ?? "",
+                        TerritoryId = sharedMarker.TerritoryId,
+                        MapId = sharedMarker.MapId,
+                        X = sharedMarker.X,
+                        Y = sharedMarker.Y,
+                        Z = sharedMarker.Z,
+                    },
+                    screenPosition,
+                    uiScale,
+                    false,
+                    true
+                );
+            }
+        }
+
+        if (PluginConfig.DevModeEnabled
+            && PluginConfig.ShowForkedTowerEventObjectsOnMap)
         {
             if (PluginConfig.ShowUnknownForkedTowerEventObjectsOnMap)
             {
@@ -1991,7 +2048,8 @@ public class DevMapModule : Module
 
     private unsafe void DrawMarkerFilterOverlay()
     {
-        if (!PluginConfig.DevModeEnabled || markerFile.Markers.Count == 0)
+        if (markerFile.Markers.Count == 0
+            && !GetSharedMarkers().Any(marker => TryGetSharedDevMarkerType(marker, out _)))
         {
             return;
         }
@@ -2124,7 +2182,154 @@ public class DevMapModule : Module
         };
     }
 
-    private void DrawMarker(ImDrawListPtr drawList, DevMapMarker marker, Vector2 center, float uiScale)
+    private IReadOnlyList<TelemetryMarker> GetSharedMarkers()
+    {
+        if (!Plugin.Modules.TryGetModule<TelemetryModule>(out var telemetry)
+            || telemetry == null
+            || !telemetry.Config.ShowSharedMarkers)
+        {
+            return Array.Empty<TelemetryMarker>();
+        }
+
+        return telemetry.GetSharedMarkersSnapshot();
+    }
+
+    private static bool TryGetSharedDevMarkerType(
+        TelemetryMarker marker,
+        out DevMarkerType type
+    )
+    {
+        type = default;
+        if (!string.Equals(marker.Source, "dev-map", StringComparison.OrdinalIgnoreCase)
+            || !Enum.TryParse(marker.Kind, true, out type))
+        {
+            return false;
+        }
+
+        if (type == DevMarkerType.FortuneCarrotChest)
+        {
+            type = DevMarkerType.FortuneCarrot;
+        }
+
+        return type is DevMarkerType.SilverChest
+            or DevMarkerType.BronzeChest
+            or DevMarkerType.FortuneCarrot
+            or DevMarkerType.PotChest
+            or DevMarkerType.Fate
+            or DevMarkerType.CriticalEncounter
+            or DevMarkerType.InvestigationLocation
+            or DevMarkerType.UnknownChest;
+    }
+
+    private static bool IsSharedTrapMarker(TelemetryMarker marker)
+    {
+        return string.Equals(
+                   marker.Source,
+                   "tower-eventobj",
+                   StringComparison.OrdinalIgnoreCase
+               )
+               && (string.Equals(
+                       marker.Kind,
+                       nameof(ForkedTowerEventObjType.SmallTrap),
+                       StringComparison.OrdinalIgnoreCase
+                   )
+                   || string.Equals(
+                       marker.Kind,
+                       nameof(ForkedTowerEventObjType.BigTrap),
+                       StringComparison.OrdinalIgnoreCase
+                   ));
+    }
+
+    private static bool IsSharedDrawableMarker(TelemetryMarker marker)
+    {
+        return IsSharedTrapMarker(marker)
+               || TryGetSharedDevMarkerType(marker, out _);
+    }
+
+    private bool HasLocalEquivalent(TelemetryMarker sharedMarker)
+    {
+        var position = new Vector3(sharedMarker.X, sharedMarker.Y, sharedMarker.Z);
+        if (IsSharedTrapMarker(sharedMarker))
+        {
+            return forkedTowerEventObjFile.EventObjects.Any(record =>
+                record.TerritoryId == sharedMarker.TerritoryId
+                && record.MapId == sharedMarker.MapId
+                && record.Type != ForkedTowerEventObjType.Unknown
+                && (sharedMarker.BaseId is not { } baseId || record.BaseId == baseId)
+                && Vector3.Distance(record.Position, position) <= 0.75f
+            );
+        }
+
+        if (!TryGetSharedDevMarkerType(sharedMarker, out var type))
+        {
+            return false;
+        }
+
+        var mergeDistance = type is DevMarkerType.Fate
+            or DevMarkerType.CriticalEncounter
+            or DevMarkerType.InvestigationLocation
+                ? EventMergeDistance
+                : ChestMergeDistance;
+        return markerFile.Markers.Any(local =>
+            local.TerritoryId == sharedMarker.TerritoryId
+            && local.MapId == sharedMarker.MapId
+            && (local.Type == type || AreMergeableMarkerTypes(local.Type, type))
+            && Vector3.Distance(local.Position, position) <= mergeDistance
+        );
+    }
+
+    private static void DrawSharedTrapMarker(
+        ImDrawListPtr drawList,
+        TelemetryMarker marker,
+        Vector2 center,
+        float uiScale,
+        float pixelsPerYalm
+    )
+    {
+        var markerRadius = Math.Clamp(6f * uiScale, 5f, 10f);
+        var mechanicRadiusYalms = marker.MechanicRadius is > 0f
+            ? marker.MechanicRadius.Value
+            : string.Equals(
+                marker.Kind,
+                nameof(ForkedTowerEventObjType.BigTrap),
+                StringComparison.OrdinalIgnoreCase
+            )
+                ? 30f
+                : 7f;
+        var mechanicRadius = Math.Max(markerRadius, mechanicRadiusYalms * pixelsPerYalm);
+        const uint fillColor = 0x283030FF;
+        const uint outlineColor = 0xE83030FF;
+        const uint pointColor = 0xFF3030FF;
+        drawList.AddCircleFilled(center, mechanicRadius, fillColor, 64);
+        drawList.AddCircle(center, mechanicRadius, outlineColor, 64, 2f);
+        drawList.AddCircleFilled(center, markerRadius + 1.5f, 0xD9000000, 24);
+        drawList.AddCircleFilled(center, markerRadius, pointColor, 24);
+        drawList.AddCircle(center, markerRadius, 0xFFFFFFFF, 24, 1f);
+
+        var hoverRadius = markerRadius + 4f;
+        if (ImGui.IsMouseHoveringRect(
+                center - new Vector2(hoverRadius),
+                center + new Vector2(hoverRadius),
+                false
+            ))
+        {
+            var name = string.IsNullOrWhiteSpace(marker.Name) ? marker.Kind : marker.Name;
+            ImGui.SetTooltip(
+                $"{name}\n社区共享雷点（只读）\n"
+                + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
+                + $"机制半径: {mechanicRadiusYalms:F1}"
+            );
+        }
+    }
+
+    private void DrawMarker(
+        ImDrawListPtr drawList,
+        DevMapMarker marker,
+        Vector2 center,
+        float uiScale,
+        bool editable = true,
+        bool shared = false
+    )
     {
         var size = Math.Clamp(26f * uiScale, 20f, 40f);
         var half = new Vector2(size / 2f);
@@ -2179,7 +2384,16 @@ public class DevMapModule : Module
             $"{markerName}{eventId}\n"
             + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n右键编辑"
         );
-        if (rightMousePressed)
+        if (!editable && shared)
+        {
+            ImGui.SetTooltip(
+                $"{markerName}{eventId}\n"
+                + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
+                + "社区共享标记（只读）"
+            );
+        }
+
+        if (editable && rightMousePressed)
         {
             pendingEdit = marker;
             editorOpen = true;

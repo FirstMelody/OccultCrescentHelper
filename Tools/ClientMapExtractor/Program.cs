@@ -20,6 +20,20 @@ var outputDirectory = Path.GetFullPath(args[1]);
 var search = args.Length > 2 ? args[2] : "";
 Directory.CreateDirectory(outputDirectory);
 
+if (search == "--map-schema")
+{
+    Console.WriteLine(
+        string.Join(
+            Environment.NewLine,
+            typeof(Map)
+                .GetProperties()
+                .OrderBy(property => property.Name)
+                .Select(property => $"{property.PropertyType.Name} {property.Name}")
+        )
+    );
+    return 0;
+}
+
 using var gameData = new GameData(
     sqpackPath,
     new LuminaOptions
@@ -27,6 +41,97 @@ using var gameData = new GameData(
         DefaultExcelLanguage = Language.ChineseSimplified,
     }
 );
+
+if (search.StartsWith("--extract-icons=", StringComparison.Ordinal))
+{
+    var iconIds = search["--extract-icons=".Length..]
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(uint.Parse)
+        .Distinct()
+        .OrderBy(iconId => iconId)
+        .ToList();
+    foreach (var iconId in iconIds)
+    {
+        ExtractIcon(gameData, outputDirectory, iconId);
+    }
+
+    return 0;
+}
+
+if (search.StartsWith("--list-territory-maps=", StringComparison.Ordinal))
+{
+    var territoryIds = search["--list-territory-maps=".Length..]
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(uint.Parse)
+        .ToHashSet();
+    var mapSheet =
+        gameData.GetExcelSheet<Map>(Language.ChineseSimplified)
+        ?? throw new InvalidOperationException("Map sheet is unavailable.");
+    var mapRows = mapSheet
+        .Where(row => territoryIds.Contains(row.TerritoryType.RowId))
+        .Select(row => new
+        {
+            MapId = row.RowId,
+            TerritoryId = row.TerritoryType.RowId,
+            ResourceId = row.Id.ToString(),
+            PlaceName = row.PlaceName.ValueNullable?.Name.ToString() ?? "",
+            PlaceNameSub = row.PlaceNameSub.ValueNullable?.Name.ToString() ?? "",
+            row.SizeFactor,
+            row.OffsetX,
+            row.OffsetY,
+            MapType = row.MapType.RowId,
+            MapCondition = row.MapCondition.RowId,
+        })
+        .OrderBy(row => row.TerritoryId)
+        .ThenBy(row => row.MapId)
+        .ToList();
+    Console.WriteLine(
+        JsonSerializer.Serialize(
+            mapRows,
+            new JsonSerializerOptions { WriteIndented = true }
+        )
+    );
+    return 0;
+}
+
+if (search.StartsWith("--extract-place=", StringComparison.Ordinal))
+{
+    var placeSearch = search["--extract-place=".Length..];
+    var mapSheet =
+        gameData.GetExcelSheet<Map>(Language.ChineseSimplified)
+        ?? throw new InvalidOperationException("Map sheet is unavailable.");
+    var extractedMaps = mapSheet
+        .Where(row =>
+            (row.PlaceName.ValueNullable?.Name.ToString() ?? "")
+            .Contains(placeSearch, StringComparison.OrdinalIgnoreCase)
+        )
+        .OrderBy(row => row.RowId)
+        .Select(row =>
+            ExtractMap(
+                gameData,
+                outputDirectory,
+                row.TerritoryType.RowId,
+                row.RowId,
+                row.Id.ToString(),
+                row.PlaceNameSub.ValueNullable?.Name.ToString() ?? "",
+                row.PlaceName.ValueNullable?.Name.ToString() ?? "",
+                row.SizeFactor,
+                row.OffsetX,
+                row.OffsetY
+            )
+        )
+        .Where(map => map != null)
+        .Cast<ExtractedMap>()
+        .ToList();
+    WriteMergedCatalog(outputDirectory, extractedMaps);
+    Console.WriteLine(
+        JsonSerializer.Serialize(
+            extractedMaps,
+            new JsonSerializerOptions { WriteIndented = true }
+        )
+    );
+    return 0;
+}
 
 var territorySheet =
     gameData.GetExcelSheet<TerritoryType>(Language.ChineseSimplified)
@@ -59,17 +164,61 @@ var matches = territorySheet
 var extracted = new List<ExtractedMap>();
 foreach (var row in matches.Where(row => !string.IsNullOrWhiteSpace(row.MapResourceId)))
 {
-    var resourceId = row.MapResourceId.Trim('/');
+    var map = ExtractMap(
+        gameData,
+        outputDirectory,
+        row.TerritoryId,
+        row.MapId,
+        row.MapResourceId,
+        row.PlaceName,
+        row.ContentName,
+        row.SizeFactor,
+        row.OffsetX,
+        row.OffsetY
+    );
+    if (map == null)
+    {
+        continue;
+    }
+
+    extracted.Add(map);
+}
+
+WriteMergedCatalog(outputDirectory, extracted);
+
+Console.WriteLine(
+    JsonSerializer.Serialize(
+        extracted,
+        new JsonSerializerOptions { WriteIndented = true }
+    )
+);
+
+return 0;
+
+static ExtractedMap? ExtractMap(
+    GameData gameData,
+    string outputDirectory,
+    uint territoryId,
+    uint mapId,
+    string mapResourceId,
+    string placeName,
+    string contentName,
+    ushort sizeFactor,
+    short offsetX,
+    short offsetY
+)
+{
+    var resourceId = mapResourceId.Trim('/');
     var textureName = resourceId.Replace("/", "", StringComparison.Ordinal) + "_m.tex";
     var texturePath = $"ui/map/{resourceId}/{textureName}";
     var texture = gameData.GetFile<TexFile>(texturePath);
     if (texture == null)
     {
         Console.Error.WriteLine($"Map texture not found: {texturePath}");
-        continue;
+        return null;
     }
 
-    var outputName = $"{row.TerritoryId}-{row.MapId}.webp";
+    var outputName = $"{territoryId}-{mapId}.webp";
     var outputPath = Path.Join(outputDirectory, outputName);
     using var image = Image.LoadPixelData<Bgra32>(
         texture.ImageData,
@@ -84,40 +233,72 @@ foreach (var row in matches.Where(row => !string.IsNullOrWhiteSpace(row.MapResou
             FileFormat = WebpFileFormatType.Lossy,
         }
     );
-    extracted.Add(
-        new ExtractedMap(
-            row.TerritoryId,
-            row.MapId,
-            row.MapResourceId,
-            row.PlaceName,
-            row.ContentName,
-            row.SizeFactor,
-            row.OffsetX,
-            row.OffsetY,
-            outputName,
-            texture.Header.Width,
-            texture.Header.Height
-        )
+    return new ExtractedMap(
+        territoryId,
+        mapId,
+        mapResourceId,
+        placeName,
+        contentName,
+        sizeFactor,
+        offsetX,
+        offsetY,
+        outputName,
+        texture.Header.Width,
+        texture.Header.Height
     );
 }
 
-var catalogPath = Path.Join(outputDirectory, "catalog.json");
-File.WriteAllText(
-    catalogPath,
-    JsonSerializer.Serialize(
-        new { maps = extracted },
-        new JsonSerializerOptions { WriteIndented = true }
-    )
-);
+static void ExtractIcon(GameData gameData, string outputDirectory, uint iconId)
+{
+    var iconGroup = iconId - iconId % 1000;
+    var texturePath = $"ui/icon/{iconGroup:D6}/{iconId:D6}_hr1.tex";
+    var texture = gameData.GetFile<TexFile>(texturePath);
+    if (texture == null)
+    {
+        Console.Error.WriteLine($"Icon texture not found: {texturePath}");
+        return;
+    }
 
-Console.WriteLine(
-    JsonSerializer.Serialize(
-        extracted,
-        new JsonSerializerOptions { WriteIndented = true }
-    )
-);
+    var outputPath = Path.Join(outputDirectory, $"{iconId}.webp");
+    using var image = Image.LoadPixelData<Bgra32>(
+        texture.ImageData,
+        texture.Header.Width,
+        texture.Header.Height
+    );
+    image.Save(
+        outputPath,
+        new WebpEncoder
+        {
+            FileFormat = WebpFileFormatType.Lossless,
+        }
+    );
+    Console.WriteLine($"{iconId}: {texture.Header.Width}x{texture.Header.Height} -> {outputPath}");
+}
 
-return 0;
+static void WriteMergedCatalog(string outputDirectory, List<ExtractedMap> extracted)
+{
+    var catalogPath = Path.Join(outputDirectory, "catalog.json");
+    var existing = File.Exists(catalogPath)
+        ? JsonSerializer.Deserialize<MapCatalog>(
+              File.ReadAllText(catalogPath),
+              new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+          )?.Maps ?? []
+        : [];
+    var merged = existing
+        .Concat(extracted)
+        .GroupBy(map => (map.TerritoryId, map.MapId))
+        .Select(group => group.Last())
+        .OrderBy(map => map.TerritoryId)
+        .ThenBy(map => map.MapId)
+        .ToList();
+    File.WriteAllText(
+        catalogPath,
+        JsonSerializer.Serialize(
+            new { maps = merged },
+            new JsonSerializerOptions { WriteIndented = true }
+        )
+    );
+}
 
 internal sealed record TerritoryMapRow(
     uint TerritoryId,
@@ -143,3 +324,5 @@ internal sealed record ExtractedMap(
     int Width,
     int Height
 );
+
+internal sealed record MapCatalog(List<ExtractedMap> Maps);

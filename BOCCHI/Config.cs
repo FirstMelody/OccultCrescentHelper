@@ -26,7 +26,7 @@ namespace BOCCHI;
 [Serializable]
 public class Config : IOcelotConfig
 {
-    public int Version { get; set; } = 3;
+    public int Version { get; set; } = 4;
 
     // Core
     public MountConfig MountConfig { get; set; } = new();

@@ -11,6 +11,11 @@ public sealed class TelemetryBatch
     public List<TelemetryMarker> Markers { get; set; } = [];
 }
 
+public sealed class TelemetryMarkerResponse
+{
+    public List<TelemetryMarker> Markers { get; set; } = [];
+}
+
 public sealed class TelemetryMarker
 {
     public string Source { get; set; } = "";
