@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
+using BOCCHI.Data;
 using Ocelot.Modules;
 using Ocelot.Windows;
 
@@ -42,6 +44,8 @@ public class TreasureModule(Plugin _plugin, Config config) : Module(_plugin, con
 
     private readonly Radar radar = new();
 
+    private DateTime nextNorthernTrackerScanAt = DateTime.MinValue;
+
     public override void PostInitialize()
     {
         hunter = new TreasureHunt(this);
@@ -55,6 +59,17 @@ public class TreasureModule(Plugin _plugin, Config config) : Module(_plugin, con
 
     public override void Render(RenderContext context)
     {
+        // Plugin.ShouldUpdate() deliberately remains South-only so South automation
+        // cannot run in North. Keep this small, read-only tracker alive independently
+        // so the North chest radar still receives current game objects.
+        if (ZoneData.IsInNorthernExpedition()
+            && !ZoneData.IsInForkedTower()
+            && DateTime.UtcNow >= nextNorthernTrackerScanAt)
+        {
+            nextNorthernTrackerScanAt = DateTime.UtcNow.AddMilliseconds(250);
+            Tracker.Tick(Plugin);
+        }
+
         radar.Draw(context.ForModule(this));
     }
 

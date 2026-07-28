@@ -11,9 +11,9 @@ namespace BOCCHI.Modules.Treasure;
 
 public class Treasure(IGameObject obj)
 {
-    public uint Id
+    public ulong Id
     {
-        get => obj.BaseId;
+        get => obj.GameObjectId;
     }
 
     private TreasureFlags LastFlags = TreasureFlags.None;

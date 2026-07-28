@@ -36,7 +36,7 @@ public class TreasureTracker : IDisposable
     {
         var treasures = Svc.Objects
             .Where(o => o is { ObjectKind: ObjectKind.Treasure })
-            .ToDictionary(o => o.BaseId, o => o);
+            .ToDictionary(o => o.GameObjectId, o => o);
 
         var knownIds = Treasures.Select(t => t.Id).ToHashSet();
 
