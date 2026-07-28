@@ -189,7 +189,7 @@ public sealed class TelemetryModule : Module
         catch (Exception exception)
         {
             sharedStatus = "社区地图同步失败，稍后重试";
-            Svc.Log.Warning(exception, "BOCCHI shared telemetry download failed");
+            DebugLog.Warning(exception, "BOCCHI shared telemetry download failed");
         }
     }
 
@@ -273,7 +273,7 @@ public sealed class TelemetryModule : Module
             if (!response.IsSuccessStatusCode)
             {
                 status = $"服务器返回 {(int)response.StatusCode}";
-                Svc.Log.Warning(
+                DebugLog.Warning(
                     "BOCCHI telemetry upload failed with HTTP {StatusCode}",
                     (int)response.StatusCode
                 );
@@ -289,7 +289,7 @@ public sealed class TelemetryModule : Module
         catch (Exception exception)
         {
             status = "上传失败，稍后重试";
-            Svc.Log.Warning(exception, "BOCCHI telemetry upload failed");
+            DebugLog.Warning(exception, "BOCCHI telemetry upload failed");
         }
     }
 

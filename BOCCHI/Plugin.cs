@@ -57,12 +57,20 @@ public sealed class Plugin : OcelotPlugin
             configChanged = true;
         }
 
+        if (Config.Version < 5)
+        {
+            Config.DebugLoggingEnabled = false;
+            Config.Version = 5;
+            configChanged = true;
+        }
+
         if (configChanged)
         {
             plugin.SavePluginConfig(Config);
         }
 
         ZoneData.Initialize(Config);
+        DebugLog.Initialize(Config);
 
         SetupLanguage(plugin);
 

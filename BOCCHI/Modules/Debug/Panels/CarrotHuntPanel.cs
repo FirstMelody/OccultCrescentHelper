@@ -225,7 +225,7 @@ public class CarrotHuntPanel : Panel
                         IncludeFields = false,
                     };
 
-                    Svc.Log.Info("Saving file to " + outputFile);
+                    DebugLog.Info("Saving file to " + outputFile);
                     var json = JsonSerializer.Serialize(data, options);
                     File.WriteAllTextAsync(outputFile, json);
                 })

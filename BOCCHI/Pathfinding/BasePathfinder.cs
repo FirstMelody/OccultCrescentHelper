@@ -250,7 +250,7 @@ public abstract class BasePathfinder(float returnCost = 300f, float teleportCost
 
     protected void PrintPath(List<PathfinderStep> steps)
     {
-        Svc.Log.Info("== Pathfinder Steps ==");
+        DebugLog.Info("== Pathfinder Steps ==");
 
         var index = 1;
         var treasureCount = 0;
@@ -271,11 +271,11 @@ public abstract class BasePathfinder(float returnCost = 300f, float teleportCost
                 treasureCount++;
             }
 
-            Svc.Log.Info(message);
+            DebugLog.Info(message);
             index++;
         }
 
-        Svc.Log.Info($"== Total treasures visited: {treasureCount} ==");
-        Svc.Log.Info("=======================");
+        DebugLog.Info($"== Total treasures visited: {treasureCount} ==");
+        DebugLog.Info("=======================");
     }
 }

@@ -31,6 +31,7 @@ Opens Occult Crescent Helper main ui
  - /bocchi dev bind : binds the current territory as Northern Expedition
  - /bocchi dev tower : binds and forces the current territory as Forked Tower: Blood
  - /bocchi dev tower-auto : stops forcing Tower detection and uses status detection
+ - /bocchi debug-log [on|off|status] : developer logging (off by default)
  - /bocchi telemetry [on|off|status] : anonymous map telemetry
 --------------------------------
 ".Trim();
@@ -103,6 +104,12 @@ Opens Occult Crescent Helper main ui
             return;
         }
 
+        if (arguments == "debug-log" || arguments.StartsWith("debug-log "))
+        {
+            ExecuteDebugLogCommand(arguments);
+            return;
+        }
+
         if (arguments == "telemetry" || arguments.StartsWith("telemetry "))
         {
             ExecuteTelemetryCommand(arguments);
@@ -110,6 +117,35 @@ Opens Occult Crescent Helper main ui
         }
 
         plugin.Windows.ToggleMainUI();
+    }
+
+    private void ExecuteDebugLogCommand(string arguments)
+    {
+        var subcommand = arguments.Length > 9
+            ? arguments[9..].Trim().ToLowerInvariant()
+            : "status";
+        switch (subcommand)
+        {
+            case "on":
+                plugin.Config.DebugLoggingEnabled = true;
+                plugin.Config.Save();
+                Svc.Chat.Print("[BOCCHI] 调试日志已开启。");
+                break;
+            case "off":
+                plugin.Config.DebugLoggingEnabled = false;
+                plugin.Config.Save();
+                Svc.Chat.Print("[BOCCHI] 调试日志已关闭。");
+                break;
+            case "":
+            case "status":
+                Svc.Chat.Print(
+                    $"[BOCCHI] 调试日志：{(plugin.Config.DebugLoggingEnabled ? "开启" : "关闭")}。"
+                );
+                break;
+            default:
+                Svc.Chat.Print("[BOCCHI] 用法：/bocchi debug-log [on|off|status]");
+                break;
+        }
     }
 
     private void ExecuteTelemetryCommand(string arguments)

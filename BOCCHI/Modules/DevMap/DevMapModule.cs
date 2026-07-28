@@ -176,6 +176,16 @@ public class DevMapModule : Module
 
     public void RenderDevUi()
     {
+        var debugLogging = PluginConfig.DebugLoggingEnabled;
+        if (ImGui.Checkbox(
+                "调试日志（默认关闭）##BOCCHI_DebugLogging",
+                ref debugLogging
+            ))
+        {
+            PluginConfig.DebugLoggingEnabled = debugLogging;
+            PluginConfig.Save();
+        }
+
         ImGui.Separator();
         ImGui.TextUnformatted("dev 地图标注");
         ImGui.Separator();
@@ -497,6 +507,11 @@ public class DevMapModule : Module
         }
 
         lastError = null;
+        if (!DebugLog.Enabled)
+        {
+            return;
+        }
+
         var summary = string.Join("、", recorded
             .GroupBy(label => label)
             .Select(group => group.Count() == 1 ? group.Key : $"{group.Key}×{group.Count()}"));
@@ -605,7 +620,7 @@ public class DevMapModule : Module
         }
 
         lastError = null;
-        if (recordedBaseIds.Count > 0)
+        if (DebugLog.Enabled && recordedBaseIds.Count > 0)
         {
             var baseIdSummary = string.Join(
                 ", ",
@@ -1557,7 +1572,7 @@ public class DevMapModule : Module
         {
             if (!warnedUnexpectedBuiltInTrapGroupCount)
             {
-                Svc.Log.Warning(
+                DebugLog.Warning(
                     "FTB trap group map metadata expects {Expected} groups, but found {Actual}; "
                     + "built-in AreaMap candidates are disabled to avoid placing groups on the wrong floor.",
                     ExpectedBuiltInTrapGroupCount,
@@ -2398,7 +2413,7 @@ public class DevMapModule : Module
             pendingEdit = marker;
             editorOpen = true;
             deleteConfirmationRequested = false;
-            Svc.Log.Information(
+            DebugLog.Information(
                 "Dev map marker right-clicked: {Type} ({X}, {Y}, {Z})",
                 marker.Type,
                 marker.X,

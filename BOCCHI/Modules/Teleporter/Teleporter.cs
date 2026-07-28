@@ -47,7 +47,7 @@ public class Teleporter(TeleporterModule module)
 
         if (ImGuiEx.IconButton(FontAwesomeIcon.Running, $"{name}##{id}"))
         {
-            Svc.Log.Info($"Pathfinding to {name} at {destination}");
+            DebugLog.Info($"Pathfinding to {name} at {destination}");
 
             Plugin.Chain.Submit(() => Chain.Create("Pathfinding")
                 .Then(new PathfindingChain(vnav, destination, ev, 20f))

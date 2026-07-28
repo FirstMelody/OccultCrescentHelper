@@ -45,12 +45,12 @@ public class TreasureHunt(TreasureModule module) : Hunter(module)
         var layout = LayoutWorld.Instance()->ActiveLayout;
         if (layout == null)
         {
-            Svc.Log.Warning("No active layout");
+            DebugLog.Warning("No active layout");
         }
 
         if (!layout->InstancesByType.TryGetValue(InstanceType.Treasure, out var mapPtr, false))
         {
-            Svc.Log.Warning("No active treasure map");
+            DebugLog.Warning("No active treasure map");
         }
 
         foreach (ILayoutInstance* instance in mapPtr.Value->Values)

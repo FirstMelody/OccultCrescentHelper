@@ -117,7 +117,7 @@ public class Automator
         Activity ??= module.Config.ShouldDoFates ? FindFate(module, lifestream, vnav) : null;
         if (Activity != null)
         {
-            Svc.Log.Info($"Selected activity: {Activity.GetName()}");
+            DebugLog.Info($"Selected activity: {Activity.GetName()}");
             return;
         }
 

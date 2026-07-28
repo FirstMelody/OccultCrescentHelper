@@ -26,7 +26,7 @@ namespace BOCCHI;
 [Serializable]
 public class Config : IOcelotConfig
 {
-    public int Version { get; set; } = 4;
+    public int Version { get; set; } = 5;
 
     // Core
     public MountConfig MountConfig { get; set; } = new();
@@ -71,6 +71,8 @@ public class Config : IOcelotConfig
 
     // Dev map authoring
     public bool DevModeEnabled { get; set; } = true;
+
+    public bool DebugLoggingEnabled { get; set; }
 
     public uint NorthernExpeditionTerritoryId { get; set; }
 

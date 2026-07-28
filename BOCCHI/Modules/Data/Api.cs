@@ -45,21 +45,21 @@ public class Api(DataModule module)
             var response = await client.PostAsync(url, content);
             if (response.IsSuccessStatusCode)
             {
-                Svc.Log.Info("Data sent successfully.");
+                DebugLog.Info("Data sent successfully.");
                 var responseBody = await response.Content.ReadAsStringAsync();
                 EnemyData.MarkSharedData(enemy);
-                Svc.Log.Info($"Response: {responseBody}");
+                DebugLog.Info($"Response: {responseBody}");
             }
             else
             {
-                Svc.Log.Debug($"Failed to send data. Status code: {response.StatusCode}");
+                DebugLog.Debug($"Failed to send data. Status code: {response.StatusCode}");
                 var errorContent = await response.Content.ReadAsStringAsync();
-                Svc.Log.Debug($"Error response: {errorContent}");
+                DebugLog.Debug($"Error response: {errorContent}");
             }
         }
         catch (Exception ex)
         {
-            Svc.Log.Debug($"Failed to send request: {ex.Message}");
+            DebugLog.Debug($"Failed to send request: {ex.Message}");
         }
     }
 
@@ -86,21 +86,21 @@ public class Api(DataModule module)
             var response = await client.PostAsync(url, content);
             if (response.IsSuccessStatusCode)
             {
-                Svc.Log.Info("Data sent successfully.");
+                DebugLog.Info("Data sent successfully.");
                 var responseBody = await response.Content.ReadAsStringAsync();
                 TrapData.MarkSharedData(trap);
-                Svc.Log.Info($"Response: {responseBody}");
+                DebugLog.Info($"Response: {responseBody}");
             }
             else
             {
-                Svc.Log.Debug($"Failed to send data. Status code: {response.StatusCode}");
+                DebugLog.Debug($"Failed to send data. Status code: {response.StatusCode}");
                 var errorContent = await response.Content.ReadAsStringAsync();
-                Svc.Log.Debug($"Error response: {errorContent}");
+                DebugLog.Debug($"Error response: {errorContent}");
             }
         }
         catch (Exception ex)
         {
-            Svc.Log.Debug($"Failed to send request: {ex.Message}");
+            DebugLog.Debug($"Failed to send request: {ex.Message}");
         }
     }
 }
