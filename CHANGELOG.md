@@ -1,4 +1,4 @@
-# 3.2.0
+# 3.2.1
 
 - Added opt-in anonymous map telemetry and a public aggregate dashboard.
 - Added North chapter dev-map capture, CE/FATE naming, marker editing and Linker-style filters.
