@@ -12,6 +12,8 @@ using BOCCHI.Enums;
 using BOCCHI.Modules.ForkedTower;
 using BOCCHI.Modules.Telemetry;
 using BOCCHI.Modules.Treasure;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Interface.Colors;
@@ -84,7 +86,6 @@ public class DevMapModule : Module
         [DevMarkerType.InvestigationLocation] = 60474,
         [DevMarkerType.UnknownChest] = 60354,
     };
-
     private DevMapMarkerFile markerFile = new();
     private ForkedTowerEventObjFile forkedTowerEventObjFile = new();
     private DevMapMarker? pendingEdit;
@@ -97,6 +98,7 @@ public class DevMapModule : Module
     private bool warnedUnexpectedBuiltInTrapGroupCount;
     private DateTime nextAutoScanAt = DateTime.MinValue;
     private string? lastError;
+    private nint areaMapAddonAddress;
 
     private string MarkerPath
     {
@@ -131,6 +133,16 @@ public class DevMapModule : Module
     {
         LoadMarkers();
         LoadForkedTowerEventObjects();
+        Svc.AddonLifecycle.RegisterListener(
+            AddonEvent.PostDraw,
+            "AreaMap",
+            OnAreaMapAvailable
+        );
+        Svc.AddonLifecycle.RegisterListener(
+            AddonEvent.PreFinalize,
+            "AreaMap",
+            OnAreaMapFinalizing
+        );
         Svc.PluginInterface.UiBuilder.Draw += DrawDevMapUi;
     }
 
@@ -1292,6 +1304,19 @@ public class DevMapModule : Module
         DrawMarkerFilterOverlay();
     }
 
+    private void OnAreaMapAvailable(AddonEvent type, AddonArgs args)
+    {
+        areaMapAddonAddress = args.Addon.Address;
+    }
+
+    private void OnAreaMapFinalizing(AddonEvent type, AddonArgs args)
+    {
+        if (areaMapAddonAddress == args.Addon.Address)
+        {
+            areaMapAddonAddress = nint.Zero;
+        }
+    }
+
     private unsafe void DrawAreaMapOverlay()
     {
         var sharedMarkers = GetSharedMarkers();
@@ -1305,14 +1330,8 @@ public class DevMapModule : Module
             return;
         }
 
-        var addonAddress = Svc.GameGui.GetAddonByName("AreaMap");
-        if (addonAddress == nint.Zero)
-        {
-            return;
-        }
-
-        var addon = (AddonAreaMap*)addonAddress.Address;
-        if (addon == null || !addon->AtkUnitBase.IsVisible)
+        if (!TryGetAreaMapAddon(out var addon, out _)
+            || !addon->AtkUnitBase.IsVisible)
         {
             return;
         }
@@ -2069,15 +2088,14 @@ public class DevMapModule : Module
             return;
         }
 
-        var addonAddress = Svc.GameGui.GetAddonByName("AreaMap");
         var agentMap = AgentMap.Instance();
-        if (addonAddress == nint.Zero || agentMap == null)
+        if (agentMap == null
+            || !TryGetAreaMapAddon(out var addon, out var addonPosition))
         {
             return;
         }
 
-        var addon = (AddonAreaMap*)addonAddress.Address;
-        if (addon == null || !addon->AtkUnitBase.IsVisible)
+        if (!addon->AtkUnitBase.IsVisible)
         {
             return;
         }
@@ -2101,8 +2119,11 @@ public class DevMapModule : Module
         var iconSize = new Vector2(32f) * ImGuiHelpers.GlobalScale;
         var windowHeight =
             iconSize.Y + style.FramePadding.Y * 2f + style.WindowPadding.Y * 2f;
+        var viewport = ImGui.GetMainViewport();
+        var desiredY = addonPosition.Y - windowHeight;
+        var windowY = Math.Max(viewport.WorkPos.Y, desiredY);
         ImGui.SetNextWindowPos(
-            new Vector2(addonAddress.X + 5f, addonAddress.Y - windowHeight),
+            new Vector2(addonPosition.X + 5f, windowY),
             ImGuiCond.Always
         );
         ImGui.SetNextWindowBgAlpha(0.92f);
@@ -2130,6 +2151,73 @@ public class DevMapModule : Module
         }
 
         ImGui.End();
+    }
+
+    private unsafe bool TryGetAreaMapAddon(
+        out AddonAreaMap* addon,
+        out Vector2 addonPosition
+    )
+    {
+        if (areaMapAddonAddress != nint.Zero)
+        {
+            addon = (AddonAreaMap*)areaMapAddonAddress;
+            addonPosition = new Vector2(
+                addon->AtkUnitBase.X,
+                addon->AtkUnitBase.Y
+            );
+            return true;
+        }
+
+        var namedAddon = Svc.GameGui.GetAddonByName<AddonAreaMap>("AreaMap", 1);
+        if (namedAddon != null)
+        {
+            addon = namedAddon;
+            addonPosition = new Vector2(
+                namedAddon->AtkUnitBase.X,
+                namedAddon->AtkUnitBase.Y
+            );
+            return true;
+        }
+
+        // Some client builds no longer expose the active AreaMap through the
+        // Dalamud wrapper. Resolve it through the game's own unit manager,
+        // which is the same route used by KamiToolKit's map overlay.
+        var agentMap = AgentMap.Instance();
+        var unitManager = RaptureAtkUnitManager.Instance();
+        if (agentMap == null || unitManager == null)
+        {
+            addon = null;
+            addonPosition = Vector2.Zero;
+            return false;
+        }
+
+        var unit = unitManager->GetAddonByName("AreaMap", 1);
+        if (unit != null)
+        {
+            addon = (AddonAreaMap*)unit;
+            addonPosition = new Vector2(unit->X, unit->Y);
+            return true;
+        }
+
+        var addonId = agentMap->AgentInterface.AddonId;
+        if (addonId == 0 || addonId > ushort.MaxValue)
+        {
+            addon = null;
+            addonPosition = Vector2.Zero;
+            return false;
+        }
+
+        unit = unitManager->GetAddonById((ushort)addonId);
+        if (unit == null)
+        {
+            addon = null;
+            addonPosition = Vector2.Zero;
+            return false;
+        }
+
+        addon = (AddonAreaMap*)unit;
+        addonPosition = new Vector2(unit->X, unit->Y);
+        return true;
     }
 
     private void DrawMarkerFilterButton(DevMarkerType type)
@@ -2923,6 +3011,16 @@ public class DevMapModule : Module
 
     public override void Dispose()
     {
+        Svc.AddonLifecycle.UnregisterListener(
+            AddonEvent.PostDraw,
+            "AreaMap",
+            OnAreaMapAvailable
+        );
+        Svc.AddonLifecycle.UnregisterListener(
+            AddonEvent.PreFinalize,
+            "AreaMap",
+            OnAreaMapFinalizing
+        );
         Svc.PluginInterface.UiBuilder.Draw -= DrawDevMapUi;
         base.Dispose();
     }
