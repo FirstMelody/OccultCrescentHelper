@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using BOCCHI.Modules.NorthernRoutes;
 using BOCCHI.Data;
 using Dalamud.Bindings.ImGui;
 using ECommons.DalamudServices;
@@ -9,6 +10,12 @@ namespace BOCCHI.Modules.Automator;
 
 public class Panel
 {
+    private string northernRouteName = "";
+    private int northernRouteDestinationId;
+    private string northernStandbyName = "默认蹲守点";
+    private Guid? selectedNorthernRouteId;
+    private Guid? pendingNorthernRouteDeleteId;
+
     public void Draw(AutomatorModule module)
     {
         OcelotUi.Title($"{module.T("panel.title")}:");
@@ -55,6 +62,16 @@ public class Panel
             }
         }
 
+        var toggleAiProvider = module.Config.ToggleAiProvider;
+        if (ImGui.Checkbox(
+                "自动切换 BossMod AI（默认关闭）##IllegalModeToggleAI",
+                ref toggleAiProvider
+            ))
+        {
+            module.Config.ToggleAiProvider = toggleAiProvider;
+            module.PluginConfig.Save();
+        }
+
         var doCriticalEncounters = module.Config.DoCriticalEncounters;
         if (ImGui.Checkbox("参加 CE##IllegalModeCE", ref doCriticalEncounters))
         {
@@ -76,6 +93,155 @@ public class Panel
         ImGui.SameLine();
         DrawActiveNames(module.ActiveFateNames.Values.ToArray());
         DrawRecordedFates(module);
+
+        DrawNorthernRouteControls(module);
+    }
+
+    public void DrawNorthernRouteControls(AutomatorModule module)
+    {
+        if (!ZoneData.IsInNorthernExpedition()
+            || !ImGui.TreeNode("北岛魔路与事件后蹲守##IllegalNorthernRoutes"))
+        {
+            return;
+        }
+
+        var useRoutes = module.Config.UseNorthernAethernetRoutes;
+        if (ImGui.Checkbox("按 vnav 实际路程选择直走或魔路传送", ref useRoutes))
+        {
+            module.Config.UseNorthernAethernetRoutes = useRoutes;
+            module.PluginConfig.Save();
+        }
+
+        var returnToStandby = module.Config.ReturnToNorthernStandby;
+        if (ImGui.Checkbox("CE/FATE 结束后返回蹲守点", ref returnToStandby))
+        {
+            module.Config.ReturnToNorthernStandby = returnToStandby;
+            module.PluginConfig.Save();
+        }
+
+        var teleportPenalty = module.Config.NorthernTeleportPenalty;
+        if (ImGui.SliderFloat(
+                "传送等效距离惩罚",
+                ref teleportPenalty,
+                0f,
+                300f,
+                "%.0f"
+            ))
+        {
+            module.Config.NorthernTeleportPenalty = teleportPenalty;
+            module.PluginConfig.Save();
+        }
+
+        ImGui.Separator();
+        ImGui.TextWrapped(
+            "先与魔路共鸣并站在魔路旁（最好选中它），填写 Lifestream "
+            + "传送列表中的准确名称后记录。随后从别处传送到该魔路，"
+            + "选中记录并保存落地坐标。"
+        );
+        ImGui.SetNextItemWidth(240f);
+        ImGui.InputText(
+            "魔路名称##IllegalNorthernRouteName",
+            ref northernRouteName,
+            128
+        );
+        ImGui.SetNextItemWidth(160f);
+        ImGui.InputInt(
+            "Lifestream 目的地 ID（可选）##IllegalNorthernRouteId",
+            ref northernRouteDestinationId
+        );
+        northernRouteDestinationId = Math.Max(0, northernRouteDestinationId);
+        if (ImGui.Button("记录当前已共鸣魔路##IllegalNorthernRecordRoute")
+            && module.RecordCurrentNorthernRoute(
+                northernRouteName,
+                (uint)northernRouteDestinationId
+            ))
+        {
+            northernRouteName = "";
+            northernRouteDestinationId = 0;
+        }
+
+        var routes = module.GetNorthernRoutes();
+        foreach (var route in routes)
+        {
+            var selected = selectedNorthernRouteId == route.Id;
+            var arrival = route.HasArrival ? "已记录落地" : "缺少落地坐标";
+            if (ImGui.Selectable(
+                    $"{route.Name} · {arrival}##NorthernRoute_{route.Id}",
+                    selected
+                ))
+            {
+                selectedNorthernRouteId = route.Id;
+                pendingNorthernRouteDeleteId = null;
+            }
+
+            var enabled = route.Enabled;
+            if (ImGui.Checkbox(
+                    $"用于自动选路##NorthernRouteEnabled_{route.Id}",
+                    ref enabled
+                ))
+            {
+                module.SetNorthernRouteEnabled(route.Id, enabled);
+            }
+
+            ImGui.SameLine();
+            ImGui.TextDisabled(
+                $"Base={route.BaseId}, Custom={route.ActiveCustomAetheryteId}, "
+                + $"ID={route.LifestreamDestinationId}"
+            );
+        }
+
+        if (selectedNorthernRouteId is { } selectedId)
+        {
+            if (ImGui.Button("将当前位置记录为所选魔路落地点")
+                && module.RecordNorthernRouteArrival(selectedId))
+            {
+                pendingNorthernRouteDeleteId = null;
+            }
+
+            ImGui.SameLine();
+            if (pendingNorthernRouteDeleteId == selectedId)
+            {
+                if (ImGui.Button("确认删除所选魔路"))
+                {
+                    module.DeleteNorthernRoute(selectedId);
+                    selectedNorthernRouteId = null;
+                    pendingNorthernRouteDeleteId = null;
+                }
+            }
+            else if (ImGui.Button("删除所选魔路"))
+            {
+                pendingNorthernRouteDeleteId = selectedId;
+            }
+        }
+
+        ImGui.Separator();
+        ImGui.SetNextItemWidth(220f);
+        ImGui.InputText(
+            "蹲守点名称##IllegalNorthernStandbyName",
+            ref northernStandbyName,
+            128
+        );
+        if (ImGui.Button("将当前位置设置为事件后蹲守点"))
+        {
+            module.SetCurrentNorthernStandbyPoint(northernStandbyName);
+        }
+
+        var standby = module.GetNorthernStandbyPoint();
+        if (standby != null)
+        {
+            var position = NorthernRouteStore.GetPosition(standby);
+            ImGui.TextDisabled(
+                $"当前蹲守点：{standby.Name} "
+                + $"({position.X:F1}, {position.Y:F1}, {position.Z:F1})"
+            );
+        }
+        else
+        {
+            ImGui.TextDisabled("尚未设置蹲守点；首个魔路记录后会自动用其位置。");
+        }
+
+        ImGui.TextDisabled($"JSON: {module.Plugin.NorthernRoutes.Path}");
+        ImGui.TreePop();
     }
 
     private static void DrawActiveNames(string[] names)

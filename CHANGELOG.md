@@ -1,3 +1,11 @@
+# 3.3.0
+
+- Added North magic-route recording with separate interaction and post-teleport arrival positions.
+- Illegal Mode now compares real vnav route lengths before choosing direct travel or Lifestream teleport.
+- Added a configurable North standby point and automatic return after CE/FATE completion.
+- Unknown North CE/FATE events remain individually configurable after first discovery.
+- BossMod AI switching now defaults to off and is disabled once for existing configurations by the v6 migration.
+
 # 3.2.1
 
 - Added opt-in anonymous map telemetry and a public aggregate dashboard.

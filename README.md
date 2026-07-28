@@ -25,6 +25,9 @@ https://raw.githubusercontent.com/FirstMelody/OccultCrescentHelper/master/repo.j
 - Eureka Linker 风格的地图图标、分类开关与右键编辑
 - Forked Tower EventObj 采集、雷点编组、互斥排除和 3D 机制范围
 - 动态北征 Illegal Mode 支持
+- 北岛已共鸣魔路采集，以及按 vnav 实际路径选择直走或 Lifestream 传送
+- CE/FATE 完成后返回自定义蹲守点
+- BossMod AI 自动切换默认关闭，可由用户显式开启
 
 常用指令：
 

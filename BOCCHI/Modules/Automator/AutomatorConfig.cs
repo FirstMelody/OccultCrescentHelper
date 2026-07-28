@@ -19,7 +19,7 @@ public class AutomatorConfig : ModuleConfig
 
     [Checkbox]
     [Illegal]
-    [RequiredPlugin("Lifestream", "vnavmesh")]
+    [RequiredPlugin("vnavmesh")]
     [Label("generic.label.enabled")]
     [Tooltip("enabled")]
     public bool Enabled { get; set; } = false;
@@ -27,7 +27,7 @@ public class AutomatorConfig : ModuleConfig
     [Enum(typeof(AiType), nameof(AiTypeProvider))]
     public AiType AiProvider { get; set; } = AiType.VBM;
 
-    [Checkbox] public bool ToggleAiProvider { get; set; } = true;
+    [Checkbox] public bool ToggleAiProvider { get; set; } = false;
 
     public bool ShouldToggleAiProvider
     {
@@ -431,6 +431,12 @@ public class AutomatorConfig : ModuleConfig
             { 1977, ShouldDoPleadingPots },
         };
     }
+
+    [Checkbox] public bool UseNorthernAethernetRoutes { get; set; } = true;
+
+    [Checkbox] public bool ReturnToNorthernStandby { get; set; } = true;
+
+    [FloatRange(0f, 300f)] public float NorthernTeleportPenalty { get; set; } = 50f;
 
     public bool IsCriticalEncounterEnabled(uint territoryId, uint eventId)
     {

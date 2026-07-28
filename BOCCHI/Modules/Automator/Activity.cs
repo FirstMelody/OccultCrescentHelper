@@ -6,6 +6,7 @@ using BOCCHI.Chains;
 using BOCCHI.Data;
 using BOCCHI.Enums;
 using BOCCHI.Modules.StateManager;
+using BOCCHI.Modules.NorthernRoutes;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Types;
 using ECommons.Automation.NeoTaskManager;
@@ -81,9 +82,6 @@ public abstract class Activity
         {
             var isFate = data.Type == EventType.Fate;
 
-            // Until North chapter aethernet IDs and destinations are known, use
-            // direct vnav navigation. This prevents South Horn teleport/return
-            // coordinates from being used in a force-bound North territory.
             if (ZoneData.IsInNorthernExpedition())
             {
                 return Chain.Create("Illegal:Pathfinding:North")
@@ -91,7 +89,13 @@ public abstract class Activity
                         _ => !isFate && module.Config.ShouldDelayCriticalEncounters,
                         Random.Shared.Next(10000, 15001)
                     )
-                    .Then(new PathfindingChain(vnav, GetPosition(), data))
+                    .Then(new NorthernRouteNavigationChain(
+                        module.NorthernRoutePlanner,
+                        vnav,
+                        lifestream,
+                        GetPosition(),
+                        data
+                    ))
                     .ConditionalThen(
                         _ => ShouldMountToPathfindTo(GetPosition()),
                         ChainHelper.MountChain()

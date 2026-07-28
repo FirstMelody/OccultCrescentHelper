@@ -1,10 +1,14 @@
+using System;
 using System.Linq;
 using BOCCHI.Chains;
 using BOCCHI.Data;
 using BOCCHI.Enums;
 using BOCCHI.Modules.CriticalEncounters;
 using BOCCHI.Modules.Fates;
+using BOCCHI.Modules.NorthernRoutes;
 using BOCCHI.Modules.StateManager;
+using ECommons.Automation.NeoTaskManager;
+using ECommons.GameHelpers;
 using Dalamud.Plugin.Services;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
@@ -23,12 +27,14 @@ public class Automator
     public Activity? Activity { get; private set; } = null;
 
     private int idleTime = 0;
+    private bool returnToNorthernStandbyPending;
 
     public void PostUpdate(AutomatorModule module, IFramework framework)
     {
         var vnav = module.GetIPCSubscriber<VNavmesh>();
         var lifestream = module.GetIPCSubscriber<Lifestream>();
-        if (!vnav.IsReady() || !lifestream.IsReady())
+        if (!vnav.IsReady()
+            || (!ZoneData.IsInNorthernExpedition() && !lifestream.IsReady()))
         {
             return;
         }
@@ -94,6 +100,7 @@ public class Automator
             if (Activity.state == ActivityState.Done)
             {
                 Activity = null;
+                returnToNorthernStandbyPending = true;
                 return;
             }
 
@@ -118,13 +125,13 @@ public class Automator
         if (Activity != null)
         {
             DebugLog.Info($"Selected activity: {Activity.GetName()}");
+            returnToNorthernStandbyPending = false;
             return;
         }
 
-        // North aethernet IDs and destinations are not known before release.
-        // Stay idle instead of returning to coordinates from South Horn.
         if (ZoneData.IsInNorthernExpedition())
         {
+            TryReturnToNorthernStandby(module, vnav, lifestream);
             return;
         }
 
@@ -213,5 +220,80 @@ public class Automator
     {
         Activity = null;
         idleTime = 0;
+        returnToNorthernStandbyPending = false;
+    }
+
+    private void TryReturnToNorthernStandby(
+        AutomatorModule module,
+        VNavmesh vnav,
+        Lifestream lifestream
+    )
+    {
+        if (!returnToNorthernStandbyPending)
+        {
+            return;
+        }
+
+        if (!module.Config.ReturnToNorthernStandby)
+        {
+            returnToNorthernStandbyPending = false;
+            return;
+        }
+
+        var standby = module.GetNorthernStandbyPoint();
+        if (standby == null)
+        {
+            returnToNorthernStandbyPending = false;
+            return;
+        }
+
+        var destination = NorthernRouteStore.GetPosition(standby);
+        if (Player.DistanceTo(destination) <= 6f)
+        {
+            returnToNorthernStandbyPending = false;
+            return;
+        }
+
+        var data = new EventData
+        {
+            Id = 0,
+            Type = EventType.Fate,
+            InternalName = standby.Name,
+            StartPosition = destination,
+            Radius = 6f,
+        };
+        var startedAt = DateTime.UtcNow;
+        var chain = Chain.Create("Illegal:NorthStandby")
+            .ConditionalThen(
+                _ => module.Config.ShouldToggleAiProvider,
+                _ => module.Config.AiProvider.Off()
+            )
+            .Then(new NorthernRouteNavigationChain(
+                module.NorthernRoutePlanner,
+                vnav,
+                lifestream,
+                destination,
+                data
+            ))
+            .Then(new TaskManagerTask(
+                () =>
+                {
+                    if (Player.DistanceTo(destination) <= 6f)
+                    {
+                        vnav.Stop();
+                        return true;
+                    }
+
+                    return DateTime.UtcNow - startedAt > TimeSpan.FromSeconds(3)
+                           && !vnav.IsRunning();
+                },
+                new TaskManagerConfiguration
+                {
+                    TimeLimitMS = 180000,
+                    ShowError = false,
+                }
+            ))
+            .OnFinally(() => returnToNorthernStandbyPending = false);
+        Plugin.Chain.Submit(() => chain);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using BOCCHI.Chains;
 using BOCCHI.Data;
+using BOCCHI.Modules.NorthernRoutes;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin;
@@ -20,6 +21,8 @@ public sealed class Plugin : OcelotPlugin
 
     public Config Config { get; }
 
+    public NorthernRouteStore NorthernRoutes { get; }
+
     public override IOcelotConfig OcelotConfig
     {
         get => Config;
@@ -34,6 +37,7 @@ public sealed class Plugin : OcelotPlugin
         : base(plugin, Module.DalamudReflector)
     {
         Config = plugin.GetPluginConfig() as Config ?? new Config();
+        NorthernRoutes = new NorthernRouteStore(plugin.ConfigDirectory.FullName);
         var configChanged = false;
         if (Config.Version < 2)
         {
@@ -61,6 +65,16 @@ public sealed class Plugin : OcelotPlugin
         {
             Config.DebugLoggingEnabled = false;
             Config.Version = 5;
+            configChanged = true;
+        }
+
+        if (Config.Version < 6)
+        {
+            // Older builds enabled BossMod control by default. Keep automation
+            // independent from the user's combat-AI mode unless they opt in.
+            Config.AutomatorConfig ??= new();
+            Config.AutomatorConfig.ToggleAiProvider = false;
+            Config.Version = 6;
             configChanged = true;
         }
 
