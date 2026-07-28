@@ -61,6 +61,16 @@ public class Treasure(IGameObject obj)
         return obj.Position;
     }
 
+    public uint GetBaseId()
+    {
+        return obj.BaseId;
+    }
+
+    public string GetObjectName()
+    {
+        return obj.Name.TextValue.Trim();
+    }
+
     private uint? GetModelId()
     {
         return GetData()?.SGB.RowId;

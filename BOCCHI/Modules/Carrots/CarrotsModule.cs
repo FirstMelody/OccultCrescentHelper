@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using BOCCHI.Data;
+using ECommons.DalamudServices;
 using Ocelot.Modules;
 using Ocelot.Windows;
 
@@ -40,6 +43,8 @@ public class CarrotsModule(Plugin plugin, Config config) : Module(plugin, config
 
     private readonly Radar radar = new();
 
+    private DateTime nextNorthernTrackerScanAt = DateTime.MinValue;
+
     public override void PostInitialize()
     {
         hunter = new CarrotHunt(this);
@@ -53,6 +58,17 @@ public class CarrotsModule(Plugin plugin, Config config) : Module(plugin, config
 
     public override void Render(RenderContext context)
     {
+        // Plugin.ShouldUpdate() intentionally remains South-only. Refresh only
+        // the read-only carrot object list here so North can still draw radar
+        // lines without enabling South automation in the new territory.
+        if (ZoneData.IsInNorthernExpedition()
+            && !ZoneData.IsInForkedTower()
+            && DateTime.UtcNow >= nextNorthernTrackerScanAt)
+        {
+            nextNorthernTrackerScanAt = DateTime.UtcNow.AddMilliseconds(250);
+            tracker.Tick(Svc.Framework);
+        }
+
         radar.Draw(context.ForModule(this));
     }
 

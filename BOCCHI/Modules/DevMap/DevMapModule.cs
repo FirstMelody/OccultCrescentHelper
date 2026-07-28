@@ -487,7 +487,9 @@ public class DevMapModule : Module
                     markerType,
                     treasure.GetPosition(),
                     territoryId,
-                    mapId
+                    mapId,
+                    name: treasure.GetObjectName(),
+                    baseId: treasure.GetBaseId()
                 ))
             {
                 recorded.Add(GetLabel(markerType));
@@ -1028,6 +1030,36 @@ public class DevMapModule : Module
                 return false;
             }
 
+            var sameObjectChest = sameMap.FirstOrDefault(marker =>
+                IsChestType(marker.Type)
+                && HorizontalDistance(marker.Position, position) <= 0.75f
+                && (baseId == 0 || marker.BaseId == 0 || marker.BaseId == baseId)
+            );
+            if (sameObjectChest != null)
+            {
+                var changed = false;
+                if (sameObjectChest.Type == DevMarkerType.UnknownChest
+                    && type != DevMarkerType.UnknownChest)
+                {
+                    sameObjectChest.Type = type;
+                    changed = true;
+                }
+
+                if (baseId != 0 && sameObjectChest.BaseId != baseId)
+                {
+                    sameObjectChest.BaseId = baseId;
+                    changed = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(name) && sameObjectChest.Name != name)
+                {
+                    sameObjectChest.Name = name;
+                    changed = true;
+                }
+
+                return changed;
+            }
+
             var nearbyChest = sameMap.FirstOrDefault(marker =>
                 AreMergeableMarkerTypes(marker.Type, type)
                 && HorizontalDistance(marker.Position, position) <= ChestMergeDistance
@@ -1041,10 +1073,33 @@ public class DevMapModule : Module
                     nearbyChest.X = position.X;
                     nearbyChest.Y = position.Y;
                     nearbyChest.Z = position.Z;
+                    if (baseId != 0)
+                    {
+                        nearbyChest.BaseId = baseId;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        nearbyChest.Name = name;
+                    }
+
                     return true;
                 }
 
-                return false;
+                var changed = false;
+                if (baseId != 0 && nearbyChest.BaseId != baseId)
+                {
+                    nearbyChest.BaseId = baseId;
+                    changed = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(name) && nearbyChest.Name != name)
+                {
+                    nearbyChest.Name = name;
+                    changed = true;
+                }
+
+                return changed;
             }
         }
         else if (type is DevMarkerType.Fate or DevMarkerType.CriticalEncounter)
@@ -1827,6 +1882,7 @@ public class DevMapModule : Module
             }
         }
 
+        string? hoveredMonsterDetails = null;
         foreach (var cluster in GetMonsterClusters(monsterMarkers, territoryId, mapId))
         {
             var mapPosition = new Vector2(cluster.Center.X, cluster.Center.Z) * sheetScale
@@ -1840,13 +1896,13 @@ public class DevMapModule : Module
                 continue;
             }
 
-            DrawMonsterCluster(
+            hoveredMonsterDetails = DrawMonsterCluster(
                 drawList,
                 cluster,
                 screenPosition,
                 uiScale,
                 monsterTextZoom
-            );
+            ) ?? hoveredMonsterDetails;
         }
 
         if (PluginConfig.DevModeEnabled
@@ -1933,6 +1989,10 @@ public class DevMapModule : Module
         }
 
         drawList.PopClipRect();
+        if (!string.IsNullOrWhiteSpace(hoveredMonsterDetails))
+        {
+            DrawForegroundTooltip(drawList, hoveredMonsterDetails, uiScale);
+        }
     }
 
     internal List<TowerMapTrapCandidate> GetTowerTrapCandidates(
@@ -3032,7 +3092,7 @@ public class DevMapModule : Module
         return cachedMonsterClusters;
     }
 
-    private static void DrawMonsterCluster(
+    private static string? DrawMonsterCluster(
         ImDrawListPtr drawList,
         MonsterMapCluster cluster,
         Vector2 center,
@@ -3078,8 +3138,12 @@ public class DevMapModule : Module
         var totalWidth = columnWidths.Sum() + columnGap * (columnCount - 1);
         var rowCount = Math.Min(MonsterLabelsPerColumn, labels.Count);
         var totalHeight = lineHeight * rowCount;
-        var top = center.Y - totalHeight / 2f;
-        var columnLeft = center.X - totalWidth / 2f;
+        // Keep the label block's upper-left anchor fixed to the map point.
+        // Growing the font around the block center made the text visibly slide
+        // whenever the native AreaMap zoom changed.
+        var blockOrigin = center + new Vector2(4f * uiScale);
+        var top = blockOrigin.Y;
+        var columnLeft = blockOrigin.X;
         for (var index = 0; index < labels.Count; index++)
         {
             var column = index / MonsterLabelsPerColumn;
@@ -3097,22 +3161,49 @@ public class DevMapModule : Module
         }
 
         var padding = new Vector2(3f * uiScale, 2f * uiScale);
-        var min = new Vector2(center.X - totalWidth / 2f, top) - padding;
-        var max = new Vector2(center.X + totalWidth / 2f, top + totalHeight) + padding;
+        var min = blockOrigin - padding;
+        var max = blockOrigin + new Vector2(totalWidth, totalHeight) + padding;
         if (!ImGui.IsMouseHoveringRect(min, max, false))
         {
-            return;
+            return null;
         }
 
         drawList.AddRect(min, max, 0xFFFFFFFF, 2f, ImDrawFlags.None, 1f);
         var source = cluster.Members.Any(member => member.Shared)
             ? "含社区共享统计（只读）"
             : "本地记录的静止未交战怪物";
-        ImGui.SetTooltip(
-            $"{string.Join("\n", labels)}\n"
-            + $"区域中心: ({cluster.Center.X:F2}, {cluster.Center.Y:F2}, {cluster.Center.Z:F2})\n"
-            + source
+        return $"{string.Join("\n", labels)}\n"
+               + $"区域中心: ({cluster.Center.X:F2}, {cluster.Center.Y:F2}, {cluster.Center.Z:F2})\n"
+               + source;
+    }
+
+    private static void DrawForegroundTooltip(
+        ImDrawListPtr drawList,
+        string text,
+        float uiScale
+    )
+    {
+        var font = ImGui.GetFont();
+        var fontSize = ImGui.GetFontSize();
+        var textSize = ImGui.CalcTextSize(text);
+        var padding = new Vector2(8f, 6f) * uiScale;
+        var boxSize = textSize + padding * 2f;
+        var viewport = ImGui.GetMainViewport();
+        var viewportMin = viewport.Pos + new Vector2(4f);
+        var viewportMax = viewport.Pos + viewport.Size - boxSize - new Vector2(4f);
+        var boxMin = Vector2.Clamp(
+            ImGui.GetMousePos() + new Vector2(16f, 18f) * uiScale,
+            viewportMin,
+            Vector2.Max(viewportMin, viewportMax)
         );
+        var boxMax = boxMin + boxSize;
+
+        // The map overlay itself uses the foreground draw list. A regular
+        // ImGui tooltip is therefore rendered underneath it; append this box
+        // after every map primitive so the hovered monster details stay on top.
+        drawList.AddRectFilled(boxMin, boxMax, 0xF51A1A1A, 4f * uiScale);
+        drawList.AddRect(boxMin, boxMax, 0xFFD8D8D8, 4f * uiScale);
+        drawList.AddText(font, fontSize, boxMin + padding, 0xFFFFFFFF, text);
     }
 
     private sealed record MonsterMapMarker(DevMapMarker Marker, bool Shared);

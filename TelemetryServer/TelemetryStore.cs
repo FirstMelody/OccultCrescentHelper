@@ -342,8 +342,15 @@ public sealed class TelemetryStore
                     COALESCE(legacy_report_id, first_report_id) AS representative_id,
                     last_seen_utc,
                     reporter_count,
+                    source,
+                    kind,
                     territory_id,
-                    map_id
+                    map_id,
+                    base_id_key,
+                    event_id_key,
+                    x,
+                    y,
+                    z
                 FROM grouped
             )
             SELECT
@@ -356,6 +363,22 @@ public sealed class TelemetryStore
             JOIN marker_reports AS report ON report.id = eligible.representative_id
             WHERE ($territory IS NULL OR eligible.territory_id = $territory)
               AND ($map IS NULL OR eligible.map_id = $map)
+              AND NOT (
+                  report.kind IN ('BronzeChest', 'SilverChest')
+                  AND EXISTS (
+                      SELECT 1
+                      FROM eligible AS pot
+                      WHERE pot.source = eligible.source
+                        AND pot.kind = 'PotChest'
+                        AND pot.territory_id = eligible.territory_id
+                        AND pot.map_id = eligible.map_id
+                        AND pot.base_id_key = eligible.base_id_key
+                        AND pot.event_id_key = eligible.event_id_key
+                        AND pot.x = eligible.x
+                        AND pot.y = eligible.y
+                        AND pot.z = eligible.z
+                  )
+              )
             ORDER BY eligible.last_seen_utc DESC
             LIMIT $limit;
             """;

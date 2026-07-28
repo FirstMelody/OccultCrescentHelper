@@ -9,7 +9,11 @@ public class Radar
 {
     public void Draw(RenderContext context)
     {
-        if (!ZoneData.IsInOccultCrescent() || Svc.Condition[ConditionFlag.InCombat])
+        var isSupportedOutdoorTerritory = ZoneData.IsInSouthHorn()
+                                          || ZoneData.IsInNorthernExpedition();
+        if (!isSupportedOutdoorTerritory
+            || ZoneData.IsInForkedTower()
+            || Svc.Condition[ConditionFlag.InCombat])
         {
             return;
         }
