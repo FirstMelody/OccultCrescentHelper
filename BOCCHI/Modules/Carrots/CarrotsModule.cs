@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using BOCCHI.Data;
+using Dalamud.Bindings.ImGui;
 using ECommons.DalamudServices;
 using Ocelot.Modules;
 using Ocelot.Windows;
+using Pictomancy;
 
 namespace BOCCHI.Modules.Carrots;
 
@@ -48,6 +50,7 @@ public class CarrotsModule(Plugin plugin, Config config) : Module(plugin, config
     public override void PostInitialize()
     {
         hunter = new CarrotHunt(this);
+        Svc.PluginInterface.UiBuilder.Draw += DrawNorthernRadar;
     }
 
     public override void Update(UpdateContext context)
@@ -58,18 +61,52 @@ public class CarrotsModule(Plugin plugin, Config config) : Module(plugin, config
 
     public override void Render(RenderContext context)
     {
-        // Plugin.ShouldUpdate() intentionally remains South-only. Refresh only
-        // the read-only carrot object list here so North can still draw radar
-        // lines without enabling South automation in the new territory.
-        if (ZoneData.IsInNorthernExpedition()
-            && !ZoneData.IsInForkedTower()
-            && DateTime.UtcNow >= nextNorthernTrackerScanAt)
+        // North uses an independent late UiBuilder callback below. This keeps
+        // its read-only radar outside South's module update/render conditions.
+        if (!ZoneData.IsInNorthernExpedition())
+        {
+            radar.Draw(context.ForModule(this));
+        }
+    }
+
+    private void DrawNorthernRadar()
+    {
+        if (!ZoneData.IsInNorthernExpedition()
+            || ZoneData.IsInForkedTower()
+            || !Config.ShouldDrawLineToCarrots
+            || Svc.Objects.LocalPlayer is not { } player)
+        {
+            return;
+        }
+
+        if (DateTime.UtcNow >= nextNorthernTrackerScanAt)
         {
             nextNorthernTrackerScanAt = DateTime.UtcNow.AddMilliseconds(250);
             tracker.Tick(Svc.Framework);
         }
 
-        radar.Draw(context.ForModule(this));
+        try
+        {
+            var drawList = PctService.GetDrawList();
+            var color = ImGui.GetColorU32(Carrot.Color);
+            foreach (var carrot in tracker.carrots)
+            {
+                if (carrot.IsValid())
+                {
+                    drawList.AddLine(
+                        player.Position,
+                        carrot.GetPosition(),
+                        1f / 1000f,
+                        color,
+                        3f
+                    );
+                }
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Pictomancy can skip a frame while its swap chain is rebuilding.
+        }
     }
 
     public override bool RenderMainUi(RenderContext context)
@@ -82,5 +119,11 @@ public class CarrotsModule(Plugin plugin, Config config) : Module(plugin, config
         }
 
         return true;
+    }
+
+    public override void Dispose()
+    {
+        Svc.PluginInterface.UiBuilder.Draw -= DrawNorthernRadar;
+        base.Dispose();
     }
 }
