@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using BOCCHI.Modules.Debug;
 using BOCCHI.Data;
 using BOCCHI.Modules.ForkedTower;
 using BOCCHI.Modules.Telemetry;
+using Dalamud.Game.ClientState.Objects.Enums;
 using ECommons;
 using ECommons.DalamudServices;
+using ECommons.GameHelpers;
 using Ocelot;
 using Ocelot.Commands;
 using Ocelot.Modules;
@@ -31,6 +34,7 @@ Opens Occult Crescent Helper main ui
  - /bocchi dev bind : binds the current territory as Northern Expedition
  - /bocchi dev tower : binds and forces the current territory as Forked Tower: Blood
  - /bocchi dev tower-auto : stops forcing Tower detection and uses status detection
+ - /bocchi dev route [name] : records the targeted North aethernet and current arrival position
  - /bocchi debug-log [on|off|status] : developer logging (off by default)
  - /bocchi telemetry [on|off|status] : anonymous map telemetry
 --------------------------------
@@ -172,7 +176,68 @@ Opens Occult Crescent Helper main ui
 
     private void ExecuteDevCommand(string arguments)
     {
-        var subcommand = arguments.Length > 3 ? arguments[3..].Trim().ToLowerInvariant() : "";
+        var rawSubcommand = arguments.Length > 3 ? arguments[3..].Trim() : "";
+        var subcommand = rawSubcommand.ToLowerInvariant();
+
+        if (subcommand == "route"
+            || subcommand.StartsWith("route ")
+            || subcommand == "route-sample"
+            || subcommand.StartsWith("route-sample "))
+        {
+            var prefixLength = subcommand.StartsWith("route-sample")
+                ? "route-sample".Length
+                : "route".Length;
+            var requestedName = rawSubcommand.Length > prefixLength
+                ? rawSubcommand[prefixLength..].Trim()
+                : "";
+            var target = Svc.Targets.Target;
+            if (!ZoneData.IsInNorthernExpedition()
+                || Svc.Objects.LocalPlayer == null)
+            {
+                Svc.Chat.PrintError("[BOCCHI] 请在北征之章内采样魔路。");
+                return;
+            }
+
+            if (target == null
+                || target.ObjectKind is not (ObjectKind.EventObj or ObjectKind.Aetheryte)
+                || Vector3.Distance(target.Position, Player.Position) > 15f)
+            {
+                Svc.Chat.PrintError("[BOCCHI] 请站在魔路旁并先选中魔路对象。");
+                return;
+            }
+
+            var name = string.IsNullOrWhiteSpace(requestedName)
+                ? target.Name.ToString()
+                : requestedName;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = $"魔路-{target.BaseId}";
+            }
+
+            var route = plugin.NorthernRoutes.RecordRoute(
+                Svc.ClientState.TerritoryType,
+                Svc.ClientState.MapId,
+                name,
+                0,
+                0,
+                target.BaseId,
+                target.Position
+            );
+            plugin.NorthernRoutes.RecordArrival(route.Id, Player.Position);
+            Svc.Chat.Print(
+                $"[BOCCHI] 已记录魔路“{route.Name}”："
+                + $"对象=({target.Position.X:F3}, {target.Position.Y:F3}, {target.Position.Z:F3})，"
+                + $"落点=({Player.Position.X:F3}, {Player.Position.Y:F3}, {Player.Position.Z:F3})，"
+                + $"Base={target.BaseId}。"
+            );
+            Svc.Log.Information(
+                $"North route sampled by command: name={route.Name}, "
+                + $"base={target.BaseId}, "
+                + $"interaction=({target.Position.X:F3}, {target.Position.Y:F3}, {target.Position.Z:F3}), "
+                + $"arrival=({Player.Position.X:F3}, {Player.Position.Y:F3}, {Player.Position.Z:F3})"
+            );
+            return;
+        }
 
         if (subcommand is "bind" or "force" or "north" or "北征")
         {
@@ -242,7 +307,7 @@ Opens Occult Crescent Helper main ui
         }
         else
         {
-            Svc.Chat.Print("[BOCCHI] 用法：/bocchi dev [on|off|bind|tower|tower-auto]");
+            Svc.Chat.Print("[BOCCHI] 用法：/bocchi dev [on|off|bind|tower|tower-auto|route 名称]");
             return;
         }
 

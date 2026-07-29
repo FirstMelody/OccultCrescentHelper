@@ -92,7 +92,6 @@ public abstract class Activity
                     .Then(new NorthernRouteNavigationChain(
                         module.NorthernRoutePlanner,
                         vnav,
-                        lifestream,
                         GetPosition(),
                         data
                     ))

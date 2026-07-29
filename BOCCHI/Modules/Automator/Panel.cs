@@ -134,8 +134,8 @@ public class Panel
 
         ImGui.Separator();
         ImGui.TextWrapped(
-            "先与魔路共鸣并站在魔路旁（最好选中它），填写 Lifestream "
-            + "传送列表中的准确名称后记录。随后从别处传送到该魔路，"
+            "先与魔路共鸣并站在魔路旁（最好选中它），填写游戏传送面板"
+            + "中的准确名称后记录。随后从别处传送到该魔路，"
             + "选中记录并保存落地坐标。"
         );
         ImGui.SetNextItemWidth(240f);
@@ -146,7 +146,7 @@ public class Panel
         );
         ImGui.SetNextItemWidth(160f);
         ImGui.InputInt(
-            "Lifestream 目的地 ID（可选）##IllegalNorthernRouteId",
+            "旧版 Lifestream 目的地 ID（保留，不再使用）##IllegalNorthernRouteId",
             ref northernRouteDestinationId
         );
         northernRouteDestinationId = Math.Max(0, northernRouteDestinationId);

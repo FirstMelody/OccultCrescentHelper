@@ -31,6 +31,7 @@ public sealed class NorthernRouteStore
     {
         path = System.IO.Path.Join(configDirectory, FileName);
         Load();
+        ApplyBuiltInRoutes();
     }
 
     public IReadOnlyList<NorthernAethernetRoute> GetRoutes(uint territoryId)
@@ -232,6 +233,75 @@ public sealed class NorthernRouteStore
                 file = new NorthernRouteFile();
             }
         }
+    }
+
+    private void ApplyBuiltInRoutes()
+    {
+        lock (sync)
+        {
+            var changed = false;
+            foreach (var builtIn in NorthernRouteDefaults.Routes)
+            {
+                var route = file.Routes.FirstOrDefault(entry =>
+                    entry.TerritoryId == builtIn.TerritoryId
+                    && (
+                        entry.BaseId == builtIn.BaseId
+                        || string.Equals(
+                            entry.Name,
+                            builtIn.Name,
+                            StringComparison.Ordinal
+                        )
+                        || Vector3.Distance(
+                            GetInteractionPosition(entry),
+                            GetInteractionPosition(builtIn)
+                        ) <= 4f
+                    )
+                );
+                if (route == null)
+                {
+                    file.Routes.Add(Clone(builtIn));
+                    changed = true;
+                    continue;
+                }
+
+                if (!BuiltInDataMatches(route, builtIn))
+                {
+                    route.MapId = builtIn.MapId;
+                    route.Name = builtIn.Name;
+                    route.BaseId = builtIn.BaseId;
+                    route.InteractionX = builtIn.InteractionX;
+                    route.InteractionY = builtIn.InteractionY;
+                    route.InteractionZ = builtIn.InteractionZ;
+                    route.ArrivalX = builtIn.ArrivalX;
+                    route.ArrivalY = builtIn.ArrivalY;
+                    route.ArrivalZ = builtIn.ArrivalZ;
+                    route.HasArrival = true;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                SaveLocked();
+            }
+        }
+    }
+
+    private static bool BuiltInDataMatches(
+        NorthernAethernetRoute route,
+        NorthernAethernetRoute builtIn
+    )
+    {
+        return route.MapId == builtIn.MapId
+               && string.Equals(route.Name, builtIn.Name, StringComparison.Ordinal)
+               && route.BaseId == builtIn.BaseId
+               && route.InteractionX.Equals(builtIn.InteractionX)
+               && route.InteractionY.Equals(builtIn.InteractionY)
+               && route.InteractionZ.Equals(builtIn.InteractionZ)
+               && route.ArrivalX.Equals(builtIn.ArrivalX)
+               && route.ArrivalY.Equals(builtIn.ArrivalY)
+               && route.ArrivalZ.Equals(builtIn.ArrivalZ)
+               && route.HasArrival;
     }
 
     private void SaveLocked()

@@ -63,8 +63,7 @@ public class AutomatorModule : Module
         NorthernRoutePlanner = new NorthernRoutePlanner(
             plugin.NorthernRoutes,
             Config,
-            GetIPCSubscriber<VNavmesh>(),
-            GetIPCSubscriber<Lifestream>()
+            GetIPCSubscriber<VNavmesh>()
         );
 
         Svc.PluginInterface.UiBuilder.Draw += RecordLiveEventNames;

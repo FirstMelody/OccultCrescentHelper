@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using BOCCHI.ActionHelpers;
 using BOCCHI.Chains;
 using BOCCHI.Data;
 using BOCCHI.Enums;
@@ -9,6 +10,7 @@ using ECommons.Automation.NeoTaskManager;
 using ECommons.DalamudServices;
 using ECommons.GameHelpers;
 using Ocelot.Chain;
+using Ocelot.Chain.ChainEx;
 using Ocelot.IPC;
 
 namespace BOCCHI.Modules.NorthernRoutes;
@@ -16,18 +18,16 @@ namespace BOCCHI.Modules.NorthernRoutes;
 public sealed class NorthernRouteNavigationChain(
     NorthernRoutePlanner planner,
     VNavmesh vnav,
-    Lifestream lifestream,
     Vector3 destination,
     EventData data
 ) : ChainFactory
 {
+    private const float SourceNearbyDistance = 25f;
+
     protected override Chain Create(Chain chain)
     {
         Task<NorthernNavigationPlan>? planTask = null;
         var plan = NorthernNavigationPlan.Direct(float.PositiveInfinity, "尚未计算");
-        var teleportIssued = false;
-        var sawTeleportBusyState = false;
-        var teleportRequestedAt = DateTime.MinValue;
 
         return chain
             .Then(_ =>
@@ -64,58 +64,61 @@ public sealed class NorthernRouteNavigationChain(
                 }
             ))
             .ConditionalThen(
-                _ => plan is { UseTeleport: true, SourceRoute: not null },
-                ChainHelper.PathfindToAndWait(
-                    plan.SourceRoute == null
-                        ? Player.Position
-                        : NorthernRouteStore.GetInteractionPosition(plan.SourceRoute),
-                    4.3f
-                )
+                _ => plan is { UseTeleport: true, SourceRoute: not null }
+                     && Player.DistanceTo(
+                         NorthernRouteStore.GetInteractionPosition(
+                             plan.SourceRoute
+                         )
+                     ) > SourceNearbyDistance,
+                () => Chain.Create("NorthernRouteReturnToSource")
+                    .Then(_ => vnav.Stop())
+                    .Then(_ =>
+                    {
+                        DebugLog.Debug(
+                            "Northern navigation: 当前不在出生魔路附近，先使用返回"
+                        );
+                        Actions.TryUnmount();
+                    })
+                    .Wait(500)
+                    .Then(_ => Actions.Return.CanCast())
+                    .Then(_ => Actions.Return.Cast())
+                    .WaitToCast()
+                    .WaitToCycleCondition(ConditionFlag.BetweenAreas)
             )
             .ConditionalThen(
-                _ => plan is { UseTeleport: true, DestinationRoute: not null },
-                _ =>
+                _ => plan is { UseTeleport: true, SourceRoute: not null },
+                () =>
                 {
-                    vnav.Stop();
-                    teleportIssued = planner.TryTeleport(plan.DestinationRoute!);
-                    teleportRequestedAt = DateTime.UtcNow;
+                    var sourcePosition =
+                        NorthernRouteStore.GetInteractionPosition(
+                            plan.SourceRoute!
+                        );
+                    return Chain.Create("NorthernRouteApproachSource")
+                        .ConditionalThen(
+                            _ => Player.DistanceTo(sourcePosition) > 4.3f,
+                            _ => Chain.Create()
+                                .Then(new PathfindAndMoveToChain(
+                                    vnav,
+                                    sourcePosition
+                                ))
+                                .WaitUntilNear(vnav, sourcePosition, 4.3f)
+                                .Then(_ => vnav.Stop())
+                        );
                 }
             )
             .ConditionalThen(
-                _ => teleportIssued,
-                new TaskManagerTask(
-                    () =>
-                    {
-                        var busy = lifestream.IsBusy()
-                                   || Svc.Condition[ConditionFlag.BetweenAreas]
-                                   || Svc.Condition[ConditionFlag.BetweenAreas51];
-                        sawTeleportBusyState |= busy;
-                        if (sawTeleportBusyState && !busy)
-                        {
-                            return true;
-                        }
-
-                        if (plan.DestinationRoute?.HasArrival == true
-                            && Player.DistanceTo(
-                                NorthernRouteStore.GetArrivalPosition(
-                                    plan.DestinationRoute
-                                )
-                            ) <= 25f)
-                        {
-                            return true;
-                        }
-
-                        // A failed or unusually silent Lifestream request must not
-                        // block Illegal Mode forever. Continue with direct vnav.
-                        return DateTime.UtcNow - teleportRequestedAt
-                               >= TimeSpan.FromSeconds(20);
-                    },
-                    new TaskManagerConfiguration
-                    {
-                        TimeLimitMS = 25000,
-                        ShowError = false,
-                    }
-                )
+                _ => plan is
+                {
+                    UseTeleport: true,
+                    SourceRoute: not null,
+                    DestinationRoute: not null,
+                },
+                () => Chain.Create()
+                    .Then(__ => vnav.Stop())
+                    .Then(new NorthernAethernetTeleportChain(
+                        plan.SourceRoute!,
+                        plan.DestinationRoute!
+                    ))
             )
             .Then(new PathfindingChain(vnav, destination, data));
     }

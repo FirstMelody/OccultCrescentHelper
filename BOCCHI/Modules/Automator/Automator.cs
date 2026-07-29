@@ -271,7 +271,6 @@ public class Automator
             .Then(new NorthernRouteNavigationChain(
                 module.NorthernRoutePlanner,
                 vnav,
-                lifestream,
                 destination,
                 data
             ))
