@@ -260,8 +260,11 @@ public class Panel
                 || !EventData.CriticalEncounters.ContainsKey(entry.Id)
             )
             .ToList();
+        var label = ZoneData.IsInNorthernExpedition()
+            ? $"北岛 CE ({recorded.Count})##IllegalRecordedCE"
+            : $"已实时记录的 CE ({recorded.Count})##IllegalRecordedCE";
         if (recorded.Count == 0
-            || !ImGui.TreeNode($"已实时记录的 CE ({recorded.Count})##IllegalRecordedCE"))
+            || !ImGui.TreeNode(label))
         {
             return;
         }
@@ -286,8 +289,11 @@ public class Panel
                 || !EventData.Fates.ContainsKey(entry.Id)
             )
             .ToList();
+        var label = ZoneData.IsInNorthernExpedition()
+            ? $"北岛 FATE ({recorded.Count})##IllegalRecordedFATE"
+            : $"已实时记录的 FATE ({recorded.Count})##IllegalRecordedFATE";
         if (recorded.Count == 0
-            || !ImGui.TreeNode($"已实时记录的 FATE ({recorded.Count})##IllegalRecordedFATE"))
+            || !ImGui.TreeNode(label))
         {
             return;
         }

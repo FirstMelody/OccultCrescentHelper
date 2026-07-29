@@ -51,7 +51,10 @@ public class Automator
             {
                 var critical = module.GetModule<CriticalEncountersModule>();
                 var activeEncounters = critical.CriticalEncounters.Values
-                    .Where(ev => ev.State != DynamicEventState.Inactive)
+                    .Where(ev =>
+                        ev.EventType < 4
+                        && ev.State != DynamicEventState.Inactive
+                    )
                     .ToList();
                 if (activeEncounters.Count == 0)
                 {
@@ -159,6 +162,11 @@ public class Automator
 
         foreach (var encounter in source.CriticalEncounters.Values)
         {
+            if (encounter.EventType >= 4)
+            {
+                continue;
+            }
+
             if (!module.Config.IsCriticalEncounterEnabled(
                     Svc.ClientState.TerritoryType,
                     encounter.DynamicEventId

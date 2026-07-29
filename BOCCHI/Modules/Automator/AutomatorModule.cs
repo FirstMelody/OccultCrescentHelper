@@ -140,40 +140,22 @@ public class AutomatorModule : Module
 
     public IEnumerable<(uint Id, string Name, bool Enabled)> GetRecordedCriticalEncounters()
     {
-        var territoryId = Svc.ClientState.TerritoryType;
-        var prefix = $"{territoryId}:";
-        return Config.RecordedCriticalEncounterNames
-            .Where(entry => entry.Key.StartsWith(prefix, StringComparison.Ordinal))
-            .Select(entry =>
-            {
-                var id = uint.TryParse(entry.Key[prefix.Length..], out var parsed) ? parsed : 0;
-                var enabled = !Config.RecordedCriticalEncounterEnabled.TryGetValue(
-                    entry.Key,
-                    out var configured
-                ) || configured;
-                return (Id: id, Name: entry.Value, Enabled: enabled);
-            })
-            .Where(entry => entry.Id != 0)
-            .OrderBy(entry => entry.Name);
+        return GetConfiguredEvents(
+            Svc.ClientState.TerritoryType,
+            NorthernEventCatalog.CriticalEncounters,
+            Config.RecordedCriticalEncounterNames,
+            Config.RecordedCriticalEncounterEnabled
+        );
     }
 
     public IEnumerable<(uint Id, string Name, bool Enabled)> GetRecordedFates()
     {
-        var territoryId = Svc.ClientState.TerritoryType;
-        var prefix = $"{territoryId}:";
-        return Config.RecordedFateNames
-            .Where(entry => entry.Key.StartsWith(prefix, StringComparison.Ordinal))
-            .Select(entry =>
-            {
-                var id = uint.TryParse(entry.Key[prefix.Length..], out var parsed) ? parsed : 0;
-                var enabled = !Config.RecordedFateEnabled.TryGetValue(
-                    entry.Key,
-                    out var configured
-                ) || configured;
-                return (Id: id, Name: entry.Value, Enabled: enabled);
-            })
-            .Where(entry => entry.Id != 0)
-            .OrderBy(entry => entry.Name);
+        return GetConfiguredEvents(
+            Svc.ClientState.TerritoryType,
+            NorthernEventCatalog.Fates,
+            Config.RecordedFateNames,
+            Config.RecordedFateEnabled
+        );
     }
 
     public void SetRecordedCriticalEncounterEnabled(uint eventId, bool enabled)
@@ -190,6 +172,39 @@ public class AutomatorModule : Module
             AutomatorConfig.GetEventKey(Svc.ClientState.TerritoryType, eventId)
         ] = enabled;
         PluginConfig.Save();
+    }
+
+    private static IEnumerable<(uint Id, string Name, bool Enabled)> GetConfiguredEvents(
+        uint territoryId,
+        IReadOnlyDictionary<uint, string> northernCatalog,
+        IReadOnlyDictionary<string, string> recordedNames,
+        IReadOnlyDictionary<string, bool> recordedEnabled
+    )
+    {
+        var events = territoryId == ZoneData.NORTHHORN
+            ? northernCatalog.ToDictionary(entry => entry.Key, entry => entry.Value)
+            : new Dictionary<uint, string>();
+        var prefix = $"{territoryId}:";
+
+        foreach (var entry in recordedNames.Where(entry =>
+                     entry.Key.StartsWith(prefix, StringComparison.Ordinal)
+                 ))
+        {
+            if (uint.TryParse(entry.Key[prefix.Length..], out var id) && id != 0)
+            {
+                events[id] = entry.Value;
+            }
+        }
+
+        return events
+            .Select(entry =>
+            {
+                var key = AutomatorConfig.GetEventKey(territoryId, entry.Key);
+                var enabled = !recordedEnabled.TryGetValue(key, out var configured)
+                              || configured;
+                return (Id: entry.Key, Name: entry.Value, Enabled: enabled);
+            })
+            .OrderBy(entry => entry.Name);
     }
 
     public IReadOnlyList<NorthernAethernetRoute> GetNorthernRoutes()

@@ -26,20 +26,24 @@ public class FateTracker
 
         foreach (var (id, data) in currentFates)
         {
-            var fate = new Fate(data);
-            if (!Fates.ContainsKey(id))
+            if (Fates.TryGetValue(id, out var fate))
             {
-                OnFateSpawned?.Invoke(fate);
+                fate.Refresh(data);
+                continue;
             }
 
+            fate = new Fate(data);
             Fates[id] = fate;
+            OnFateSpawned?.Invoke(fate);
         }
 
         var despawned = Fates.Keys.Except(currentFates.Keys).ToList();
         foreach (var id in despawned)
         {
-            OnFateDespawned?.Invoke(Fates[id]);
-            Fates.Remove(id);
+            if (Fates.Remove(id, out var fate))
+            {
+                OnFateDespawned?.Invoke(fate);
+            }
         }
 
         foreach (var fate in Fates.Values)
