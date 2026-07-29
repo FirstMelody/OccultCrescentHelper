@@ -98,19 +98,9 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
             );
             if (candidate.IsExcluded)
             {
-                if (!Config.DrawSimpleMode)
-                {
-                    // An Omen VFX is retained across frames by its key. Update it
-                    // to a zero-sized invisible circle in the same frame that the
-                    // candidate is excluded; Pictomancy disposes it afterwards.
-                    PctService.VfxRenderer.AddCircle(
-                        key,
-                        candidate.Position,
-                        0.001f,
-                        Vector4.Zero
-                    );
-                }
-
+                // Pictomancy destroys retained VFX when their key is no longer
+                // submitted. Submitting an invisible, near-zero circle keeps the
+                // old Omen alive and some clients do not apply that invalid scale.
                 continue;
             }
 

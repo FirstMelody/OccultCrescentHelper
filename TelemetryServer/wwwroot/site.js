@@ -1,5 +1,6 @@
 const state = {
   markers: [],
+  trapCandidates: [],
   colors: new Map(),
   points: [],
   maps: [],
@@ -94,9 +95,35 @@ function normalizeMap(raw) {
   };
 }
 
+function normalizeTrapCandidate(raw) {
+  return {
+    source: "tower-candidate",
+    kind: raw.kind,
+    territoryId: raw.territoryId,
+    mapId: raw.mapId,
+    baseId: raw.baseId ?? null,
+    eventId: null,
+    level: null,
+    name: raw.name ?? "",
+    x: raw.x,
+    y: raw.y,
+    z: raw.z,
+    hitboxRadius: null,
+    mechanicRadius: raw.mechanicRadius,
+    reportCount: 0,
+    candidateStatus: raw.status ?? "inferred",
+    candidateGroup: raw.group ?? "",
+    candidateNote: raw.note ?? "",
+  };
+}
+
 async function loadCatalog() {
-  const catalog = await getJson("./maps/catalog.json");
+  const [catalog, candidates] = await Promise.all([
+    getJson("./maps/catalog.json"),
+    getJson("./maps/tower-trap-candidates.json"),
+  ]);
   state.maps = (catalog.maps ?? []).map(normalizeMap);
+  state.trapCandidates = (candidates.candidates ?? []).map(normalizeTrapCandidate);
   const picker = $("mapSelect");
   picker.innerHTML = state.maps.map(map =>
     `<option value="${map.territoryId}:${map.mapId}">${esc(map.contentName)} · ${esc(map.placeName)}</option>`
@@ -104,6 +131,25 @@ async function loadCatalog() {
   const north = state.maps.find(map => map.territoryId === 1346) ?? state.maps[0];
   if (north) picker.value = `${north.territoryId}:${north.mapId}`;
   selectCurrentMap();
+}
+
+function trapCandidatesForMap(map) {
+  const candidates = state.trapCandidates.filter(candidate =>
+    candidate.territoryId === map.territoryId
+    && candidate.mapId === map.mapId
+  );
+  return candidates.filter(candidate =>
+    !state.markers.some(marker =>
+      marker.kind === candidate.kind
+      && marker.territoryId === candidate.territoryId
+      && marker.mapId === candidate.mapId
+      && Math.hypot(
+        marker.x - candidate.x,
+        marker.y - candidate.y,
+        marker.z - candidate.z
+      ) <= .75
+    )
+  );
 }
 
 function selectCurrentMap() {
@@ -363,7 +409,7 @@ async function drawMap() {
   ctx.fillStyle = "#07101a12";
   ctx.fillRect(0, 0, width, height);
 
-  const drawableMarkers = state.markers.filter(marker =>
+  const drawableMarkers = [...state.markers, ...trapCandidatesForMap(map)].filter(marker =>
     isDrawableMarker(marker)
     && !state.hiddenKinds.has(marker.kind)
     && isLikelyOnTowerPath(marker, map, image)
@@ -387,14 +433,17 @@ async function drawMap() {
         : marker.kind === "BigTrap" ? 30 : 7;
       const radius = mechanicRadius * (map.sizeFactor / 100) / 2048
         * width * state.viewport.zoom;
-      ctx.fillStyle = "#ff303028";
+      const isInferredCandidate = marker.candidateStatus === "inferred";
+      ctx.fillStyle = isInferredCandidate ? "#ff303010" : "#ff303028";
       ctx.strokeStyle = "#ff3030e8";
       ctx.lineWidth = 2;
+      ctx.setLineDash(isInferredCandidate ? [5, 4] : []);
       ctx.beginPath();
       ctx.arc(point.x, point.y, Math.max(3, radius), 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "#ff3030";
+      ctx.setLineDash([]);
+      ctx.fillStyle = isInferredCandidate ? "#fff0" : "#ff3030";
       ctx.strokeStyle = "#4a0000";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -531,10 +580,14 @@ $("plot").addEventListener("mousemove", event => {
     return;
   }
   const level = marker.level ? ` · 等级 ${marker.level}` : "";
+  const candidateLabel = marker.candidateStatus === "inferred" ? " · 推算候选" : "";
+  const candidateDetails = marker.candidateStatus === "inferred"
+    ? `<br>${esc(marker.candidateNote || "由同组点位间距推算，尚无实测刷出记录")}`
+    : "";
   const provisional = marker.kind === "Monster" && marker.reportCount < 2
     ? " · 单来源暂定"
     : "";
-  tip.innerHTML = `<strong>${esc(marker.kind)}${level}${provisional}</strong><br>${esc(marker.name || "")}<br>
+  tip.innerHTML = `<strong>${esc(marker.kind)}${level}${provisional}${candidateLabel}</strong>${candidateDetails}<br>${esc(marker.name || "")}<br>
     T${marker.territoryId} / M${marker.mapId}<br>X ${marker.x.toFixed(2)} · Y ${marker.y.toFixed(2)} · Z ${marker.z.toFixed(2)}`;
   tip.style.left = `${Math.min(x + 18, rect.width - 290)}px`;
   tip.style.top = `${Math.max(8, y - 22)}px`;

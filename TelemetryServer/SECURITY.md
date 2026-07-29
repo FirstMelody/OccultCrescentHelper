@@ -10,6 +10,12 @@ after two distinct uploader hashes report the same normalized identity. The
 pre-migration dataset is imported once as the protected
 `LEGACY-TRUSTED-IMPORT` baseline.
 
+One server-configured authoritative uploader may bypass the two-reporter
+threshold. Its anonymous HMAC uploader hash is stored only in the server
+environment, and its reports are preferred as the representative public data
+for matching points. Other uploaders continue to require independent
+confirmation.
+
 ## Administration
 
 Run administrative commands inside the private container:
@@ -49,7 +55,10 @@ Store it in the server-only `.env` file:
 
 ```dotenv
 BOCCHI_IP_HASH_SECRET=...
+BOCCHI_AUTHORITATIVE_UPLOADER_HASH=...
 ```
 
 Changing or losing this key changes future hashes and prevents correlating new
-uploads with earlier ones.
+uploads with earlier ones. The authoritative hash is optional, must be the
+64-character uppercase hash shown by `admin list-uploaders`, and must be
+updated if the authoritative client's public network address changes.

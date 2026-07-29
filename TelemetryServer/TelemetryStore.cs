@@ -68,12 +68,19 @@ public sealed class TelemetryStore
     private readonly string databasePath;
     private readonly int minimumReporters;
     private readonly int dailyUniqueMarkerLimit;
+    private readonly string authoritativeUploaderHash;
 
-    public TelemetryStore(string databasePath, int minimumReporters, int dailyUniqueMarkerLimit)
+    public TelemetryStore(
+        string databasePath,
+        int minimumReporters,
+        int dailyUniqueMarkerLimit,
+        string authoritativeUploaderHash = ""
+    )
     {
         this.databasePath = databasePath;
         this.minimumReporters = minimumReporters;
         this.dailyUniqueMarkerLimit = dailyUniqueMarkerLimit;
+        this.authoritativeUploaderHash = authoritativeUploaderHash;
         connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
@@ -407,7 +414,13 @@ public sealed class TelemetryStore
                     source, kind, territory_id, map_id,
                     base_id_key, event_id_key, x, y, z,
                     MIN(id) AS first_report_id,
-                    MIN(CASE WHEN uploader_hash = $legacy THEN id END) AS legacy_report_id,
+                    MIN(
+                        CASE
+                            WHEN uploader_hash = $legacy
+                              OR uploader_hash = $authoritative
+                            THEN id
+                        END
+                    ) AS trusted_report_id,
                     MAX(last_seen_utc) AS last_seen_utc,
                     COUNT(*) AS reporter_count
                 FROM marker_reports
@@ -416,12 +429,19 @@ public sealed class TelemetryStore
                     base_id_key, event_id_key, x, y, z
                 HAVING
                     source = 'monster'
-                    OR MAX(CASE WHEN uploader_hash = $legacy THEN 1 ELSE 0 END) = 1
+                    OR MAX(
+                        CASE
+                            WHEN uploader_hash = $legacy
+                              OR uploader_hash = $authoritative
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) = 1
                     OR COUNT(*) >= $minimumReporters
             ),
             eligible AS (
                 SELECT
-                    COALESCE(legacy_report_id, first_report_id) AS representative_id,
+                    COALESCE(trusted_report_id, first_report_id) AS representative_id,
                     last_seen_utc,
                     reporter_count,
                     source,
@@ -465,6 +485,7 @@ public sealed class TelemetryStore
             LIMIT $limit;
             """;
         command.Parameters.AddWithValue("$legacy", LegacyUploaderHash);
+        command.Parameters.AddWithValue("$authoritative", authoritativeUploaderHash);
         command.Parameters.AddWithValue("$minimumReporters", minimumReporters);
         command.Parameters.AddWithValue(
             "$territory",
@@ -517,7 +538,14 @@ public sealed class TelemetryStore
                     base_id_key, event_id_key, x, y, z
                 HAVING
                     source = 'monster'
-                    OR MAX(CASE WHEN uploader_hash = $legacy THEN 1 ELSE 0 END) = 1
+                    OR MAX(
+                        CASE
+                            WHEN uploader_hash = $legacy
+                              OR uploader_hash = $authoritative
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) = 1
                     OR COUNT(*) >= $minimumReporters
             )
             """;
@@ -530,6 +558,7 @@ public sealed class TelemetryStore
             FROM eligible;
             """;
         totalsCommand.Parameters.AddWithValue("$legacy", LegacyUploaderHash);
+        totalsCommand.Parameters.AddWithValue("$authoritative", authoritativeUploaderHash);
         totalsCommand.Parameters.AddWithValue("$minimumReporters", minimumReporters);
         totalsCommand.Parameters.AddWithValue(
             "$territory",
@@ -559,6 +588,7 @@ public sealed class TelemetryStore
             LIMIT 30;
             """;
         kindsCommand.Parameters.AddWithValue("$legacy", LegacyUploaderHash);
+        kindsCommand.Parameters.AddWithValue("$authoritative", authoritativeUploaderHash);
         kindsCommand.Parameters.AddWithValue("$minimumReporters", minimumReporters);
         kindsCommand.Parameters.AddWithValue(
             "$territory",

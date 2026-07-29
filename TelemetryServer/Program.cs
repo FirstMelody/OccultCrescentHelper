@@ -41,7 +41,15 @@ var dailyUniqueMarkerLimit = ReadPositiveInt(
     defaultDailyUniqueMarkerLimit,
     maximum: 100_000
 );
-var store = new TelemetryStore(databasePath, minimumReporters, dailyUniqueMarkerLimit);
+var authoritativeUploaderHash = ReadOptionalUploaderHash(
+    "BOCCHI_AUTHORITATIVE_UPLOADER_HASH"
+);
+var store = new TelemetryStore(
+    databasePath,
+    minimumReporters,
+    dailyUniqueMarkerLimit,
+    authoritativeUploaderHash
+);
 await store.InitializeAsync();
 
 if (args.Length > 0 && string.Equals(args[0], "admin", StringComparison.OrdinalIgnoreCase))
@@ -162,4 +170,22 @@ static int ReadPositiveInt(string name, int fallback, int maximum)
     return int.TryParse(value, out var parsed) && parsed > 0
         ? Math.Min(parsed, maximum)
         : fallback;
+}
+
+static string ReadOptionalUploaderHash(string name)
+{
+    var value = Environment.GetEnvironmentVariable(name)?.Trim().ToUpperInvariant();
+    if (string.IsNullOrEmpty(value))
+    {
+        return string.Empty;
+    }
+
+    if (value.Length != 64 || value.Any(character => !Uri.IsHexDigit(character)))
+    {
+        throw new InvalidOperationException(
+            $"{name} must be an uppercase 64-character hexadecimal uploader hash."
+        );
+    }
+
+    return value;
 }

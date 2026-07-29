@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "baseId": 2014584,
+      "x": 825.0,
+      "y": -698.0,
+      "z": 758.5,
+      "mechanicRadius": 7.0,
+      "status": "inferred",
+      "group": "lower-east-corridor-east-upper",
+      "note": "由同组另外三个小雷点构成的 10×7 矩形补全"
+    },
+    {
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "baseId": 2014584,
+      "x": 825.0,
+      "y": -698.0,
+      "z": 805.5,
+      "mechanicRadius": 7.0,
+      "status": "inferred",
+      "group": "lower-east-corridor-east-lower",
+      "note": "由同组另外三个小雷点构成的 10×7 矩形补全"
+    },
+    {
+      "territoryId": 1346,
+      "mapId": 1178,
+      "kind": "SmallTrap",
+      "baseId": 2014584,
+      "x": 568.5,
+      "y": -700.0,
+      "z": 922.5,
+      "mechanicRadius": 7.0,
+      "status": "inferred",
+      "group": "lower-corridor-entrance-west",
+      "note": "由同组 7 yalms 间距的 3×2 网格补全右上点"
+    },
+    {
+      "territoryId": 1346,
+      "mapId": 1178,
+      "kind": "SmallTrap",
+      "baseId": 2014584,
+      "x": 561.5,
+      "y": -700.0,
+      "z": 929.5,
+      "mechanicRadius": 7.0,
+      "status": "inferred",
+      "group": "lower-corridor-entrance-west",
+      "note": "由同组 7 yalms 间距的 3×2 网格补全中下点"
+    },
+    {
+      "territoryId": 1346,
+      "mapId": 1178,
+      "kind": "SmallTrap",
+      "baseId": 2014584,
+      "x": 603.5,
+      "y": -700.0,
+      "z": 957.0,
+      "mechanicRadius": 7.0,
+      "status": "inferred",
+      "group": "lower-corridor-entrance-south",
+      "note": "由同组 7 yalms 间距的 2×3 网格补全右下点"
+    }
+  ]
+}
