@@ -44,6 +44,24 @@ for field in ("AssemblyVersion", "TestingAssemblyVersion"):
         f"repo.json {field}",
     )
 
+current_download_url = (
+    "https://github.com/FirstMelody/OccultCrescentHelper/"
+    f"releases/download/v{current_version}/latest.zip"
+)
+next_download_url = (
+    "https://github.com/FirstMelody/OccultCrescentHelper/"
+    f"releases/download/v{next_version}/latest.zip"
+)
+for field in ("DownloadLinkInstall", "DownloadLinkTesting", "DownloadLinkUpdate"):
+    repository = replace_once(
+        repository,
+        rb'("' + field.encode() + rb'"\s*:\s*")'
+        + re.escape(current_download_url.encode())
+        + rb'(")',
+        rb"\g<1>" + next_download_url.encode() + rb"\g<2>",
+        f"repo.json {field}",
+    )
+
 PROJECT_PATH.write_bytes(project)
 REPOSITORY_PATH.write_bytes(repository)
 print(next_version)

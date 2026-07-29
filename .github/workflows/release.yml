@@ -49,8 +49,14 @@ jobs:
         run: |
           PROJECT_VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' BOCCHI/BOCCHI.csproj | head -1)"
           REPO_VERSION="$(python3 -c 'import json; print(json.load(open("repo.json", encoding="utf-8"))[0]["AssemblyVersion"])')"
+          REPO_DOWNLOAD="$(python3 -c 'import json; print(json.load(open("repo.json", encoding="utf-8"))[0]["DownloadLinkInstall"])')"
+          EXPECTED_DOWNLOAD="https://github.com/FirstMelody/OccultCrescentHelper/releases/download/v${PROJECT_VERSION}/latest.zip"
           if [[ "$REPO_VERSION" != "$PROJECT_VERSION.0" ]]; then
             echo "Repository version $REPO_VERSION does not match project version $PROJECT_VERSION" >&2
+            exit 1
+          fi
+          if [[ "$REPO_DOWNLOAD" != "$EXPECTED_DOWNLOAD" ]]; then
+            echo "Repository download $REPO_DOWNLOAD does not match project version $PROJECT_VERSION" >&2
             exit 1
           fi
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
@@ -106,12 +112,12 @@ jobs:
             latest.zip
             latest.zip.sha256
 
-      - name: Push version commit and tag
+      - name: Push release tag
         if: env.AUTO_RELEASE == 'true'
         shell: bash
         run: |
           git tag "v${VERSION}"
-          git push origin "HEAD:${GITHUB_REF_NAME}" "v${VERSION}"
+          git push origin "v${VERSION}"
 
       - name: Create GitHub release
         if: github.ref_type == 'tag' || env.AUTO_RELEASE == 'true'
@@ -127,3 +133,8 @@ jobs:
           files: |
             latest.zip
             latest.zip.sha256
+
+      - name: Push version commit
+        if: env.AUTO_RELEASE == 'true'
+        shell: bash
+        run: git push origin "HEAD:${GITHUB_REF_NAME}"
