@@ -4,7 +4,7 @@ namespace BOCCHI.Modules.DevMap;
 
 public class ForkedTowerEventObjFile
 {
-    public int Version { get; set; } = 2;
+    public int Version { get; set; } = 3;
 
     public List<ForkedTowerEventObjRecord> EventObjects { get; set; } = [];
 

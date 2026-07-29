@@ -74,7 +74,7 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
                 Svc.ClientState.MapId,
                 includeAllMaps: true
             )
-            .Where(candidate => !candidate.IsExcluded);
+            .AsEnumerable();
 
 #if DEBUG
         if (!Config.IgnoreDrawRange)
@@ -91,6 +91,27 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
 
         foreach (var candidate in candidates)
         {
+            var key = FormattableString.Invariant(
+                $"BOCCHI.PotentialTrap.{candidate.GroupKey}.{candidate.Position.X:F2}:{candidate.Position.Y:F2}:{candidate.Position.Z:F2}.{candidate.Type}"
+            );
+            if (candidate.IsExcluded)
+            {
+                if (!Config.DrawSimpleMode)
+                {
+                    // An Omen VFX is retained across frames by its key. Update it
+                    // to a zero-sized invisible circle in the same frame that the
+                    // candidate is excluded; Pictomancy disposes it afterwards.
+                    PctService.VfxRenderer.AddCircle(
+                        key,
+                        candidate.Position,
+                        0.001f,
+                        Vector4.Zero
+                    );
+                }
+
+                continue;
+            }
+
             var radius = Math.Max(0.1f, candidate.MechanicRadius);
             var color = candidate.IsObservedInCurrentRun
                 ? GetObservedTrapColor(candidate.Type)
@@ -102,9 +123,6 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
 
             if (!Config.DrawSimpleMode)
             {
-                var key = FormattableString.Invariant(
-                    $"BOCCHI.PotentialTrap.{candidate.GroupKey}.{candidate.Position.X:F2}:{candidate.Position.Y:F2}:{candidate.Position.Z:F2}.{candidate.Type}.{candidate.IsObservedInCurrentRun}"
-                );
                 PctService.VfxRenderer.AddCircle(
                     key,
                     candidate.Position,

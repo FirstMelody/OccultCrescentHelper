@@ -838,8 +838,9 @@ public class DevMapModule : Module
                     changed = true;
                 }
 
-                if (existing.Type == ForkedTowerEventObjType.Unknown
-                    && type != ForkedTowerEventObjType.Unknown)
+                if (type != ForkedTowerEventObjType.Unknown
+                    && (existing.Type != type
+                        || existing.MechanicRadius != mechanicRadius))
                 {
                     existing.Type = type;
                     existing.MechanicRadius = mechanicRadius;
@@ -915,17 +916,7 @@ public class DevMapModule : Module
         float? MechanicRadius
     ) GetKnownForkedTowerObjectType(uint baseId, uint territoryId)
     {
-        (ForkedTowerEventObjType Type, float? MechanicRadius) known =
-            territoryId == ZoneData.SOUTHHORN
-                ? baseId switch
-                {
-                    (uint)OccultObjectType.Trap =>
-                        (ForkedTowerEventObjType.SmallTrap, 7f),
-                    (uint)OccultObjectType.BigTrap =>
-                        (ForkedTowerEventObjType.BigTrap, 30f),
-                    _ => (ForkedTowerEventObjType.Unknown, null),
-                }
-                : (ForkedTowerEventObjType.Unknown, null);
+        var known = GetBuiltInForkedTowerObjectType(baseId);
         if (known.Type != ForkedTowerEventObjType.Unknown)
         {
             return known;
@@ -939,6 +930,21 @@ public class DevMapModule : Module
         return learned != null
             ? (learned.Type, learned.MechanicRadius)
             : known;
+    }
+
+    private static (
+        ForkedTowerEventObjType Type,
+        float? MechanicRadius
+    ) GetBuiltInForkedTowerObjectType(uint baseId)
+    {
+        return baseId switch
+        {
+            (uint)OccultObjectType.Trap =>
+                (ForkedTowerEventObjType.SmallTrap, 7f),
+            (uint)OccultObjectType.BigTrap =>
+                (ForkedTowerEventObjType.BigTrap, 30f),
+            _ => (ForkedTowerEventObjType.Unknown, null),
+        };
     }
 
     private static ForkedTowerEventObjRecord CloneForkedTowerEventObject(
@@ -1315,8 +1321,8 @@ public class DevMapModule : Module
             forkedTowerEventObjFile.EventObjects ??= [];
             forkedTowerEventObjFile.TrapGroups ??= [];
 
-            var changed = forkedTowerEventObjFile.Version < 2;
-            forkedTowerEventObjFile.Version = 2;
+            var changed = forkedTowerEventObjFile.Version < 3;
+            forkedTowerEventObjFile.Version = 3;
             foreach (var record in forkedTowerEventObjFile.EventObjects)
             {
                 record.Name ??= "";
@@ -1334,13 +1340,24 @@ public class DevMapModule : Module
                     record.Id = Guid.NewGuid();
                     changed = true;
                 }
+
+                var (knownType, knownRadius) =
+                    GetBuiltInForkedTowerObjectType(record.BaseId);
+                if (knownType != ForkedTowerEventObjType.Unknown
+                    && (record.Type != knownType
+                        || record.MechanicRadius != knownRadius))
+                {
+                    record.Type = knownType;
+                    record.MechanicRadius = knownRadius;
+                    changed = true;
+                }
             }
 
             changed |= NormalizeTrapGroups();
 
             if (changed)
             {
-                if (sourceVersion < 2)
+                if (sourceVersion < 3)
                 {
                     CreateMigrationBackup(ForkedTowerEventObjPath, sourceVersion);
                 }

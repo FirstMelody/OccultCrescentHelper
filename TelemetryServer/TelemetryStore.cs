@@ -204,6 +204,88 @@ public sealed class TelemetryStore
             """;
         command.Parameters.AddWithValue("$legacy", LegacyUploaderHash);
         await command.ExecuteNonQueryAsync();
+
+        // These IDs have the same mechanic in both South and North. Early North
+        // clients uploaded them as Unknown, so normalize both historical rows and
+        // future uploads on the server instead of waiting for every client to
+        // revisit the exact object.
+        command.Parameters.Clear();
+        command.CommandText =
+            """
+            DELETE FROM marker_reports AS stale
+            WHERE stale.source = 'tower-eventobj'
+              AND stale.base_id IN (2014584, 2014585)
+              AND stale.kind <> CASE stale.base_id
+                  WHEN 2014584 THEN 'SmallTrap'
+                  ELSE 'BigTrap'
+              END
+              AND EXISTS (
+                  SELECT 1
+                  FROM marker_reports AS canonical
+                  WHERE canonical.uploader_hash = stale.uploader_hash
+                    AND canonical.source = stale.source
+                    AND canonical.kind = CASE stale.base_id
+                        WHEN 2014584 THEN 'SmallTrap'
+                        ELSE 'BigTrap'
+                    END
+                    AND canonical.territory_id = stale.territory_id
+                    AND canonical.map_id = stale.map_id
+                    AND canonical.base_id_key = stale.base_id_key
+                    AND canonical.event_id_key = stale.event_id_key
+                    AND canonical.x = stale.x
+                    AND canonical.y = stale.y
+                    AND canonical.z = stale.z
+              );
+
+            UPDATE marker_reports
+            SET kind = CASE base_id
+                    WHEN 2014584 THEN 'SmallTrap'
+                    ELSE 'BigTrap'
+                END,
+                mechanic_radius = CASE base_id
+                    WHEN 2014584 THEN 7
+                    ELSE 30
+                END
+            WHERE source = 'tower-eventobj'
+              AND base_id IN (2014584, 2014585);
+
+            DELETE FROM markers AS stale
+            WHERE stale.source = 'tower-eventobj'
+              AND stale.base_id IN (2014584, 2014585)
+              AND stale.kind <> CASE stale.base_id
+                  WHEN 2014584 THEN 'SmallTrap'
+                  ELSE 'BigTrap'
+              END
+              AND EXISTS (
+                  SELECT 1
+                  FROM markers AS canonical
+                  WHERE canonical.source = stale.source
+                    AND canonical.kind = CASE stale.base_id
+                        WHEN 2014584 THEN 'SmallTrap'
+                        ELSE 'BigTrap'
+                    END
+                    AND canonical.territory_id = stale.territory_id
+                    AND canonical.map_id = stale.map_id
+                    AND canonical.base_id_key = stale.base_id_key
+                    AND canonical.event_id_key = stale.event_id_key
+                    AND canonical.x = stale.x
+                    AND canonical.y = stale.y
+                    AND canonical.z = stale.z
+              );
+
+            UPDATE markers
+            SET kind = CASE base_id
+                    WHEN 2014584 THEN 'SmallTrap'
+                    ELSE 'BigTrap'
+                END,
+                mechanic_radius = CASE base_id
+                    WHEN 2014584 THEN 7
+                    ELSE 30
+                END
+            WHERE source = 'tower-eventobj'
+              AND base_id IN (2014584, 2014585);
+            """;
+        await command.ExecuteNonQueryAsync();
         await transaction.CommitAsync();
     }
 
@@ -962,6 +1044,16 @@ public sealed class TelemetryStore
         if (kind == "FortuneCarrotChest")
         {
             kind = "FortuneCarrot";
+        }
+
+        if (source == "tower-eventobj")
+        {
+            kind = marker.BaseId switch
+            {
+                2014584 => "SmallTrap",
+                2014585 => "BigTrap",
+                _ => kind,
+            };
         }
 
         if (string.IsNullOrWhiteSpace(source)
