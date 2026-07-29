@@ -43,6 +43,8 @@ public class DevMapModule : Module
     private const float EventMergeDistance = 8f;
     private const float MonsterMergeDistance = 200f;
     private const float MonsterDisplayClusterRadius = 230f;
+    private const float MonsterCollisionOnlyZoom = 1.5f;
+    private const float MonsterLabelCollisionGap = 3f;
     private const int MonsterLabelsPerCluster = 4;
     private const int MonsterLabelsPerColumn = 4;
     private const float NearbyMonsterDistance = 100f;
@@ -1900,7 +1902,14 @@ public class DevMapModule : Module
         }
 
         string? hoveredMonsterDetails = null;
-        foreach (var cluster in GetMonsterClusters(monsterMarkers, territoryId, mapId))
+        foreach (var cluster in GetMonsterClusters(
+                     monsterMarkers,
+                     territoryId,
+                     mapId,
+                     sheetScale * markerZoom,
+                     uiScale,
+                     monsterTextZoom
+                 ))
         {
             var mapPosition = new Vector2(cluster.Center.X, cluster.Center.Z) * sheetScale
                               + sheetOffset;
@@ -3021,7 +3030,10 @@ public class DevMapModule : Module
     private IReadOnlyList<MonsterMapCluster> GetMonsterClusters(
         IReadOnlyCollection<MonsterMapMarker> markers,
         uint territoryId,
-        uint mapId
+        uint mapId,
+        float screenScale,
+        float uiScale,
+        float mapZoom
     )
     {
         var hash = new HashCode();
@@ -3043,6 +3055,17 @@ public class DevMapModule : Module
             hash.Add(entry.Shared);
         }
 
+        var collisionOnly = mapZoom >= MonsterCollisionOnlyZoom;
+        hash.Add(collisionOnly);
+        if (collisionOnly)
+        {
+            // Panning translates every rectangle equally, so only the scale and
+            // font metrics affect screen-space collision clustering.
+            hash.Add(MathF.Round(screenScale, 5));
+            hash.Add(MathF.Round(uiScale, 3));
+            hash.Add(MathF.Round(mapZoom, 3));
+        }
+
         var fingerprint = hash.ToHashCode();
         if (cachedMonsterClusterTerritoryId == territoryId
             && cachedMonsterClusterMapId == mapId
@@ -3053,9 +3076,9 @@ public class DevMapModule : Module
 
         var clusters = new List<MonsterMapCluster>();
         foreach (var marker in markers
-                     .OrderBy(entry => entry.Marker.X)
-                     .ThenBy(entry => entry.Marker.Z)
-                     .ThenBy(entry => entry.Marker.BaseId))
+                      .OrderBy(entry => entry.Marker.X)
+                      .ThenBy(entry => entry.Marker.Z)
+                      .ThenBy(entry => entry.Marker.BaseId))
         {
             MonsterMapCluster? bestCluster = null;
             var bestDistance = float.MaxValue;
@@ -3070,21 +3093,44 @@ public class DevMapModule : Module
                     continue;
                 }
 
-                var mergedCenter = MonsterMapCluster.CalculateCenter(mergedMembers);
-                if (mergedMembers.Any(member =>
-                        Vector2.Distance(
-                            new Vector2(member.Marker.X, member.Marker.Z),
-                            new Vector2(mergedCenter.X, mergedCenter.Z)
-                        ) > MonsterDisplayClusterRadius
-                    ))
+                float distance;
+                if (collisionOnly)
                 {
-                    continue;
+                    if (!ClusterHasLabelCollision(
+                            cluster,
+                            marker,
+                            screenScale,
+                            uiScale,
+                            mapZoom
+                        ))
+                    {
+                        continue;
+                    }
+
+                    distance = Vector2.Distance(
+                        new Vector2(cluster.Center.X, cluster.Center.Z) * screenScale,
+                        new Vector2(marker.Marker.X, marker.Marker.Z) * screenScale
+                    );
+                }
+                else
+                {
+                    var mergedCenter = MonsterMapCluster.CalculateCenter(mergedMembers);
+                    if (mergedMembers.Any(member =>
+                            Vector2.Distance(
+                                new Vector2(member.Marker.X, member.Marker.Z),
+                                new Vector2(mergedCenter.X, mergedCenter.Z)
+                            ) > MonsterDisplayClusterRadius
+                        ))
+                    {
+                        continue;
+                    }
+
+                    distance = Vector2.Distance(
+                        new Vector2(cluster.Center.X, cluster.Center.Z),
+                        new Vector2(marker.Marker.X, marker.Marker.Z)
+                    );
                 }
 
-                var distance = Vector2.Distance(
-                    new Vector2(cluster.Center.X, cluster.Center.Z),
-                    new Vector2(marker.Marker.X, marker.Marker.Z)
-                );
                 if (distance < bestDistance)
                 {
                     bestCluster = cluster;
@@ -3109,6 +3155,69 @@ public class DevMapModule : Module
         return cachedMonsterClusters;
     }
 
+    private static bool ClusterHasLabelCollision(
+        MonsterMapCluster cluster,
+        MonsterMapMarker candidate,
+        float screenScale,
+        float uiScale,
+        float mapZoom
+    )
+    {
+        var candidateBounds = GetMonsterLabelBounds(
+            candidate,
+            screenScale,
+            uiScale,
+            mapZoom
+        );
+        return cluster.Members.Any(member =>
+        {
+            var memberBounds = GetMonsterLabelBounds(
+                member,
+                screenScale,
+                uiScale,
+                mapZoom
+            );
+            return candidateBounds.Min.X <= memberBounds.Max.X
+                   && candidateBounds.Max.X >= memberBounds.Min.X
+                   && candidateBounds.Min.Y <= memberBounds.Max.Y
+                   && candidateBounds.Max.Y >= memberBounds.Min.Y;
+        });
+    }
+
+    private static MonsterLabelBounds GetMonsterLabelBounds(
+        MonsterMapMarker member,
+        float screenScale,
+        float uiScale,
+        float mapZoom
+    )
+    {
+        var label = GetMonsterLabel(member.Marker);
+        var fontSize = GetMonsterFontSize(uiScale, mapZoom);
+        var textSize = ImGui.CalcTextSize(label) * (fontSize / ImGui.GetFontSize());
+        var point = new Vector2(member.Marker.X, member.Marker.Z) * screenScale;
+        var origin = point + new Vector2(4f * uiScale);
+        var padding = new Vector2(
+            MonsterLabelCollisionGap * uiScale,
+            Math.Max(1.5f, 2f * uiScale)
+        );
+        return new MonsterLabelBounds(origin - padding, origin + textSize + padding);
+    }
+
+    private static string GetMonsterLabel(DevMapMarker marker)
+    {
+        var name = string.IsNullOrWhiteSpace(marker.Name) ? "怪物" : marker.Name;
+        return marker.Level > 0 ? $"{marker.Level} {name}" : name;
+    }
+
+    private static float GetMonsterFontSize(float uiScale, float mapZoom)
+    {
+        return Math.Clamp(
+            ImGui.GetFontSize() * 0.68f * uiScale * mapZoom,
+            8f,
+            26f
+        );
+    }
+
     private static string? DrawMonsterCluster(
         ImDrawListPtr drawList,
         MonsterMapCluster cluster,
@@ -3118,14 +3227,8 @@ public class DevMapModule : Module
     )
     {
         var labels = cluster.Members
-            .Select(member => member.Marker)
-            .GroupBy(marker => (marker.Level, marker.Name))
-            .Select(group =>
-            {
-                var (level, name) = group.Key;
-                var safeName = string.IsNullOrWhiteSpace(name) ? "怪物" : name;
-                return level > 0 ? $"{level} {safeName}" : safeName;
-            })
+            .Select(member => GetMonsterLabel(member.Marker))
+            .Distinct(StringComparer.Ordinal)
             .OrderBy(label => label, StringComparer.Ordinal)
             .ToList();
         if (labels.Count == 0)
@@ -3134,11 +3237,7 @@ public class DevMapModule : Module
         }
 
         var font = ImGui.GetFont();
-        var fontSize = Math.Clamp(
-            ImGui.GetFontSize() * 0.68f * uiScale * mapZoom,
-            8f,
-            26f
-        );
+        var fontSize = GetMonsterFontSize(uiScale, mapZoom);
         var lineHeight = fontSize + Math.Max(1.5f, 2f * uiScale);
         var textSizes = labels
             .Select(label => ImGui.CalcTextSize(label) * (fontSize / ImGui.GetFontSize()))
@@ -3166,7 +3265,7 @@ public class DevMapModule : Module
             var column = index / MonsterLabelsPerColumn;
             var row = index % MonsterLabelsPerColumn;
             var textPosition = new Vector2(
-                columnLeft + (columnWidths[column] - textSizes[index].X) / 2f,
+                columnLeft,
                 top + row * lineHeight
             );
             drawList.AddText(font, fontSize, textPosition + Vector2.One, 0xE0000000, labels[index]);
@@ -3224,6 +3323,8 @@ public class DevMapModule : Module
     }
 
     private sealed record MonsterMapMarker(DevMapMarker Marker, bool Shared);
+
+    private readonly record struct MonsterLabelBounds(Vector2 Min, Vector2 Max);
 
     private sealed class MonsterMapCluster
     {
