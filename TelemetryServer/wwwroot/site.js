@@ -433,17 +433,14 @@ async function drawMap() {
         : marker.kind === "BigTrap" ? 30 : 7;
       const radius = mechanicRadius * (map.sizeFactor / 100) / 2048
         * width * state.viewport.zoom;
-      const isInferredCandidate = marker.candidateStatus === "inferred";
-      ctx.fillStyle = isInferredCandidate ? "#ff303010" : "#ff303028";
+      ctx.fillStyle = "#ff303028";
       ctx.strokeStyle = "#ff3030e8";
       ctx.lineWidth = 2;
-      ctx.setLineDash(isInferredCandidate ? [5, 4] : []);
       ctx.beginPath();
       ctx.arc(point.x, point.y, Math.max(3, radius), 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = isInferredCandidate ? "#fff0" : "#ff3030";
+      ctx.fillStyle = "#ff3030";
       ctx.strokeStyle = "#4a0000";
       ctx.lineWidth = 2;
       ctx.beginPath();
