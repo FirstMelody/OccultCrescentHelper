@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>新月岛北征之章点位图</title>
-  <link rel="stylesheet" href="./site.css?v=20260728-monster1">
+  <link rel="stylesheet" href="./site.css?v=20260729-zoom1">
 </head>
 <body>
   <main>
@@ -40,7 +40,14 @@
           <h2 id="mapTitle">游戏地图点位</h2>
           <span>真实客户端地图 · 右侧可逐类开关 · 悬停查看详情</span>
         </div>
-        <canvas id="plot"></canvas>
+        <div class="map-stage">
+          <canvas id="plot"></canvas>
+          <div class="zoom-controls" aria-label="地图缩放">
+            <button id="zoomOut" type="button" title="缩小">−</button>
+            <button id="zoomReset" type="button" title="重置缩放"><span id="zoomLevel">100%</span></button>
+            <button id="zoomIn" type="button" title="放大">+</button>
+          </div>
+        </div>
         <div id="tooltip" class="tooltip" hidden></div>
       </article>
 
@@ -61,6 +68,6 @@
     </section>
     <p class="map-note">地图纹理由本地 FFXIV 客户端导出，仅用于插件点位采集、校准与社区资料整理。</p>
   </main>
-  <script src="./site.js?v=20260728-density1"></script>
+  <script src="./site.js?v=20260729-zoom1"></script>
 </body>
 </html>

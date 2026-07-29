@@ -5,8 +5,18 @@ const state = {
   maps: [],
   selectedMap: null,
   mapImages: new Map(),
+  mapSamplers: new Map(),
   markerIcons: new Map(),
   hiddenKinds: new Set(),
+  viewport: {
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    dragging: false,
+    pointerId: null,
+    lastX: 0,
+    lastY: 0,
+  },
 };
 const palette = ["#ffcc66", "#f1787d", "#72d6c9", "#87a9ff", "#c892ff", "#ff9f5a", "#88d66c", "#e5e7eb"];
 const kindIconIds = {
@@ -98,7 +108,14 @@ async function loadCatalog() {
 
 function selectCurrentMap() {
   const [territoryId, mapId] = $("mapSelect").value.split(":").map(Number);
+  const previousKey = state.selectedMap
+    ? `${state.selectedMap.territoryId}:${state.selectedMap.mapId}`
+    : null;
   state.selectedMap = state.maps.find(map => map.territoryId === territoryId && map.mapId === mapId) ?? null;
+  const nextKey = state.selectedMap
+    ? `${state.selectedMap.territoryId}:${state.selectedMap.mapId}`
+    : null;
+  if (previousKey !== null && previousKey !== nextKey) resetViewport();
   const map = state.selectedMap;
   $("territory").textContent = map?.territoryId ?? "—";
   $("map").textContent = map?.mapId ?? "—";
@@ -186,12 +203,91 @@ function loadMarkerIcon(iconId) {
 
 function markerToPixel(marker, map, width, height) {
   const scale = map.sizeFactor / 100;
-  const mapX = marker.x * scale + map.offsetX * (scale - 1);
-  const mapY = marker.z * scale + map.offsetY * (scale - 1);
+  // Map offsets are world-space origins, so they are scaled together with XYZ.
+  // The old (scale - 1) form happened to work on the offset-free outdoor maps,
+  // but shifted every SizeFactor=200 Tower marker by one full map offset.
+  const mapX = (marker.x + map.offsetX) * scale;
+  const mapY = (marker.z + map.offsetY) * scale;
   return {
     x: (mapX + 1024) / 2048 * width,
     y: (mapY + 1024) / 2048 * height,
   };
+}
+
+function viewportPoint(point, width, height) {
+  const { zoom, panX, panY } = state.viewport;
+  return {
+    x: width / 2 + (point.x - width / 2) * zoom + panX,
+    y: height / 2 + (point.y - height / 2) * zoom + panY,
+  };
+}
+
+function clampViewport(width, height) {
+  const maxPanX = width * (state.viewport.zoom - 1) / 2;
+  const maxPanY = height * (state.viewport.zoom - 1) / 2;
+  state.viewport.panX = Math.max(-maxPanX, Math.min(maxPanX, state.viewport.panX));
+  state.viewport.panY = Math.max(-maxPanY, Math.min(maxPanY, state.viewport.panY));
+}
+
+function updateZoomLabel() {
+  const label = $("zoomLevel");
+  if (label) label.textContent = `${Math.round(state.viewport.zoom * 100)}%`;
+}
+
+function resetViewport() {
+  state.viewport.zoom = 1;
+  state.viewport.panX = 0;
+  state.viewport.panY = 0;
+  updateZoomLabel();
+}
+
+function zoomAt(x, y, nextZoom) {
+  const canvas = $("plot");
+  const rect = canvas.getBoundingClientRect();
+  const oldZoom = state.viewport.zoom;
+  const zoom = Math.max(1, Math.min(5, nextZoom));
+  if (Math.abs(zoom - oldZoom) < .001) return;
+  const relativeX = x - rect.width / 2;
+  const relativeY = y - rect.height / 2;
+  state.viewport.panX = relativeX
+    - (relativeX - state.viewport.panX) * zoom / oldZoom;
+  state.viewport.panY = relativeY
+    - (relativeY - state.viewport.panY) * zoom / oldZoom;
+  state.viewport.zoom = zoom;
+  clampViewport(rect.width, rect.height);
+  updateZoomLabel();
+  drawMap();
+}
+
+function mapSamplerFor(map, image) {
+  if (state.mapSamplers.has(map.image)) return state.mapSamplers.get(map.image);
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth || image.width;
+  canvas.height = image.naturalHeight || image.height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  context.drawImage(image, 0, 0);
+  const sampler = { canvas, context };
+  state.mapSamplers.set(map.image, sampler);
+  return sampler;
+}
+
+function isLikelyOnTowerPath(marker, map, image) {
+  if (!isTrapKind(marker.kind) || map.sizeFactor <= 100) return true;
+  const sampler = mapSamplerFor(map, image);
+  const point = markerToPixel(marker, map, sampler.canvas.width, sampler.canvas.height);
+  const sampleRadius = 12;
+  const left = Math.max(0, Math.floor(point.x - sampleRadius));
+  const top = Math.max(0, Math.floor(point.y - sampleRadius));
+  const right = Math.min(sampler.canvas.width, Math.ceil(point.x + sampleRadius));
+  const bottom = Math.min(sampler.canvas.height, Math.ceil(point.y + sampleRadius));
+  if (right <= left || bottom <= top) return false;
+  const pixels = sampler.context.getImageData(left, top, right - left, bottom - top).data;
+  for (let index = 0; index < pixels.length; index += 4) {
+    // Tower walkable paths are the pale overlay (high red and blue channels).
+    // Nearby-floor EventObjs remain in the object table but land on parchment.
+    if (pixels[index] >= 215 && pixels[index + 2] >= 145) return true;
+  }
+  return false;
 }
 
 const monsterDisplayClusterRadius = 230;
@@ -253,14 +349,24 @@ async function drawMap() {
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, width, height);
+  clampViewport(width, height);
 
   const image = await loadMapImage(map);
-  ctx.drawImage(image, 0, 0, width, height);
+  const imageOrigin = viewportPoint({ x: 0, y: 0 }, width, height);
+  ctx.drawImage(
+    image,
+    imageOrigin.x,
+    imageOrigin.y,
+    width * state.viewport.zoom,
+    height * state.viewport.zoom
+  );
   ctx.fillStyle = "#07101a12";
   ctx.fillRect(0, 0, width, height);
 
   const drawableMarkers = state.markers.filter(marker =>
-    isDrawableMarker(marker) && !state.hiddenKinds.has(marker.kind)
+    isDrawableMarker(marker)
+    && !state.hiddenKinds.has(marker.kind)
+    && isLikelyOnTowerPath(marker, map, image)
   );
   const iconIds = [
     ...new Set(
@@ -274,12 +380,13 @@ async function drawMap() {
   );
   const iconSize = Math.max(20, Math.min(34, width / 28));
   state.points = drawableMarkers.filter(marker => marker.kind !== "Monster").map(marker => {
-    const point = markerToPixel(marker, map, width, height);
+    const point = viewportPoint(markerToPixel(marker, map, width, height), width, height);
     if (isTrapKind(marker.kind)) {
       const mechanicRadius = marker.mechanicRadius > 0
         ? marker.mechanicRadius
         : marker.kind === "BigTrap" ? 30 : 7;
-      const radius = mechanicRadius * (map.sizeFactor / 100) / 2048 * width;
+      const radius = mechanicRadius * (map.sizeFactor / 100) / 2048
+        * width * state.viewport.zoom;
       ctx.fillStyle = "#ff303028";
       ctx.strokeStyle = "#ff3030e8";
       ctx.lineWidth = 2;
@@ -338,7 +445,11 @@ async function drawMap() {
       const name = marker.name || "怪物";
       return marker.level ? `${marker.level} ${name}` : name;
     }))].sort((left, right) => left.localeCompare(right, "zh-CN"));
-    const point = markerToPixel(cluster.center, map, width, height);
+    const point = viewportPoint(
+      markerToPixel(cluster.center, map, width, height),
+      width,
+      height
+    );
     const fontSize = Math.max(8, Math.min(12, width / 80));
     const lineHeight = fontSize + 2;
     ctx.font = `600 ${fontSize}px "Microsoft YaHei", sans-serif`;
@@ -430,6 +541,56 @@ $("plot").addEventListener("mousemove", event => {
   tip.hidden = false;
 });
 $("plot").addEventListener("mouseleave", () => $("tooltip").hidden = true);
+$("plot").addEventListener("wheel", event => {
+  event.preventDefault();
+  const rect = event.currentTarget.getBoundingClientRect();
+  const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+  zoomAt(
+    event.clientX - rect.left,
+    event.clientY - rect.top,
+    state.viewport.zoom * factor
+  );
+}, { passive: false });
+$("plot").addEventListener("pointerdown", event => {
+  if (state.viewport.zoom <= 1) return;
+  state.viewport.dragging = true;
+  state.viewport.pointerId = event.pointerId;
+  state.viewport.lastX = event.clientX;
+  state.viewport.lastY = event.clientY;
+  event.currentTarget.setPointerCapture(event.pointerId);
+  event.currentTarget.classList.add("is-dragging");
+});
+$("plot").addEventListener("pointermove", event => {
+  if (!state.viewport.dragging || event.pointerId !== state.viewport.pointerId) return;
+  state.viewport.panX += event.clientX - state.viewport.lastX;
+  state.viewport.panY += event.clientY - state.viewport.lastY;
+  state.viewport.lastX = event.clientX;
+  state.viewport.lastY = event.clientY;
+  const rect = event.currentTarget.getBoundingClientRect();
+  clampViewport(rect.width, rect.height);
+  $("tooltip").hidden = true;
+  drawMap();
+});
+function stopViewportDrag(event) {
+  if (event.pointerId !== state.viewport.pointerId) return;
+  state.viewport.dragging = false;
+  state.viewport.pointerId = null;
+  event.currentTarget.classList.remove("is-dragging");
+}
+$("plot").addEventListener("pointerup", stopViewportDrag);
+$("plot").addEventListener("pointercancel", stopViewportDrag);
+$("zoomIn").addEventListener("click", () => {
+  const rect = $("plot").getBoundingClientRect();
+  zoomAt(rect.width / 2, rect.height / 2, state.viewport.zoom * 1.25);
+});
+$("zoomOut").addEventListener("click", () => {
+  const rect = $("plot").getBoundingClientRect();
+  zoomAt(rect.width / 2, rect.height / 2, state.viewport.zoom / 1.25);
+});
+$("zoomReset").addEventListener("click", () => {
+  resetViewport();
+  drawMap();
+});
 $("mapSelect").addEventListener("change", refresh);
 $("refresh").addEventListener("click", refresh);
 $("kinds").addEventListener("click", event => {
