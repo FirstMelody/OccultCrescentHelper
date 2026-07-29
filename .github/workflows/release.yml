@@ -23,6 +23,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Bump patch version
+        if: >-
+          github.event_name == 'push' &&
+          github.ref_type == 'branch' &&
+          github.actor != 'github-actions[bot]' &&
+          !contains(github.event.head_commit.message, '[skip version bump]')
+        shell: bash
+        run: |
+          VERSION="$(python3 .github/scripts/bump-patch-version.py)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add BOCCHI/BOCCHI.csproj repo.json
+          git diff --cached --check
+          git commit -m "Bump version to ${VERSION} [skip version bump]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v5
