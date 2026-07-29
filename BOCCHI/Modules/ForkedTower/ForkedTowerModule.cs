@@ -43,7 +43,9 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
     {
         GetModule<CriticalEncountersModule>().Tracker.OnBattleState += OnCriticalEncounterBattle;
 
-        StartNewRun();
+        // International Dalamud may construct plugins on an IoC worker thread.
+        // ObjectTable.LocalPlayer (read by StartNewRun) is framework-thread only.
+        _ = Svc.Framework.RunOnFrameworkThread(StartNewRun);
     }
 
     public override void Update(UpdateContext context)
