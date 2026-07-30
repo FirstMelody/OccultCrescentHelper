@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using BOCCHI.Data;
 using ECommons.DalamudServices;
 using Ocelot.Modules;
 
@@ -22,6 +23,12 @@ public class FateTracker
 
     public void Update()
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            Fates.Clear();
+            return;
+        }
+
         var currentFates = Svc.Fates.ToDictionary(f => (uint)f.FateId, f => f);
 
         foreach (var (id, data) in currentFates)

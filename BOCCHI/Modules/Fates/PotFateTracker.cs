@@ -50,6 +50,13 @@ public sealed class PotFateTracker : IDisposable
 
     private void Update()
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            Snapshot = PotFateSnapshot.Unsupported;
+            dtrEntry.Shown = false;
+            return;
+        }
+
         var territoryId = Svc.ClientState.TerritoryType;
         if (!PotFateIdsByTerritory.TryGetValue(territoryId, out var potFateIds)
             || ZoneData.IsInForkedTower())

@@ -45,6 +45,18 @@ public class CriticalEncounter : Activity
                 throw new Exception("Activity is no longer valid.");
             }
 
+            // Reaching the CE's mechanic area is sufficient. This check must also
+            // remain active after the optional crowd-based destination adjustment.
+            if (IsInZone())
+            {
+                if (vnav.IsRunning())
+                {
+                    vnav.Stop();
+                }
+
+                return true;
+            }
+
             if (!finalDestination && IsCloseToZone())
             {
                 // Get all players in the zone
@@ -73,16 +85,6 @@ public class CriticalEncounter : Activity
                 }
             }
 
-            if (!finalDestination && IsInZone())
-            {
-                if (vnav.IsRunning())
-                {
-                    vnav.Stop();
-                }
-
-                return true;
-            }
-
             var critical = module.GetModule<CriticalEncountersModule>();
             var encounter = critical.CriticalEncounters[data.Id];
 
@@ -93,7 +95,27 @@ public class CriticalEncounter : Activity
 
             if (finalDestination)
             {
-                return !vnav.IsRunning();
+                // Finishing the optional crowd route is not arrival. The
+                // crowd's bounding box can contain unreachable points or
+                // positions outside a non-rectangular CE area. If that route
+                // ends while still outside the mechanic radius, continue
+                // toward the authoritative CE marker and keep watching until
+                // IsInZone() succeeds.
+                if (!vnav.IsRunning()
+                    && !vnav.IsSimpleMoveInProgress()
+                    && !vnav.IsPathfinding())
+                {
+                    var radius = data.Radius ?? GetRadius();
+                    module.Debug(
+                        $"CE crowd route ended outside mechanic range; "
+                        + $"continuing to center "
+                        + $"(distance={Player.DistanceTo(GetPosition()):F1}, "
+                        + $"radius={radius:F1})"
+                    );
+                    vnav.PathfindAndMoveTo(GetPosition(), false);
+                }
+
+                return false;
             }
 
             if (!vnav.IsRunning())
@@ -149,20 +171,44 @@ public class CriticalEncounter : Activity
 
     public override unsafe bool IsValid()
     {
-        if (Encounter.State == DynamicEventState.Register)
+        if (!source.CriticalEncounters.TryGetValue(data.Id, out var encounter))
+        {
+            return false;
+        }
+
+        if (encounter.State == DynamicEventState.Register)
         {
             return true;
         }
 
         var dec = DynamicEventContainer.GetInstance();
-        return dec != null && Encounter.DynamicEventId == dec->CurrentEventId;
+        return dec != null && encounter.DynamicEventId == dec->CurrentEventId;
+    }
+
+    public override bool IsEnabled()
+    {
+        return module.Config.ShouldDoCriticalEncounters
+               && module.Config.IsCriticalEncounterEnabled(
+                   Svc.ClientState.TerritoryType,
+                   data.Id
+               );
+    }
+
+    protected override bool IsParticipationComplete()
+    {
+        return module.Config.ReturnToNorthernStandby
+               && source.CriticalEncounters.TryGetValue(
+                   data.Id,
+                   out var encounter
+               )
+               && encounter.State == DynamicEventState.Battle
+               && encounter.Progress >= 100;
     }
 
     protected override float GetRadius()
     {
-        // This is kind of an assumption, but it seems accurate enough for most encounters.
-        // return Encounter.Unknown4;
-        return 19f;
+        var radius = Encounter.MapMarker.Radius;
+        return float.IsFinite(radius) && radius > 0f ? radius : 19f;
     }
 
     protected override Vector3 GetPosition()

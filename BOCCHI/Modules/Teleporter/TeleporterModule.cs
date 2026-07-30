@@ -55,13 +55,18 @@ public class TeleporterModule : Module
 
     private unsafe void OnSelectYesnoPostSetup(AddonEvent type, AddonArgs args)
     {
-        if (!ZoneData.IsInOccultCrescent() || ZoneData.IsInForkedTower() || Player.IsDead)
+        if (!ZoneData.IsInPluginTerritory()
+            || ZoneData.IsInForkedTower()
+            || Player.IsDead)
         {
             return;
         }
 
         var addon = (AtkUnitBase*)args.Addon.Address;
-        if (!addon->IsVisible)
+        if (addon == null
+            || !addon->IsVisible
+            || addon->AtkValues == null
+            || addon->AtkValuesCount <= 7)
         {
             return;
         }
@@ -72,6 +77,7 @@ public class TeleporterModule : Module
             return;
         }
 
+        DebugLog.Debug("Confirming Return destination");
         addon->FireCallbackInt(0);
     }
 }

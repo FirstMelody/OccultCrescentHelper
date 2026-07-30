@@ -59,6 +59,7 @@ public class DevMapModule : Module
         DevMarkerType.BronzeChest,
         DevMarkerType.FortuneCarrot,
         DevMarkerType.PotChest,
+        DevMarkerType.RerollChest,
         DevMarkerType.Fate,
         DevMarkerType.CriticalEncounter,
         DevMarkerType.InvestigationLocation,
@@ -68,6 +69,7 @@ public class DevMapModule : Module
         DevMarkerType.BronzeChest,
         DevMarkerType.SilverChest,
         DevMarkerType.PotChest,
+        DevMarkerType.RerollChest,
         DevMarkerType.FortuneCarrot,
         DevMarkerType.InvestigationLocation,
         DevMarkerType.Fate,
@@ -90,12 +92,14 @@ public class DevMapModule : Module
         [DevMarkerType.FortuneCarrot] = 25207,
         [DevMarkerType.FortuneCarrotChest] = 60354,
         [DevMarkerType.PotChest] = 60354,
+        [DevMarkerType.RerollChest] = 61473,
         [DevMarkerType.Fate] = 60502,
         [DevMarkerType.CriticalEncounter] = 63909,
         [DevMarkerType.InvestigationLocation] = 60474,
         [DevMarkerType.UnknownChest] = 60354,
     };
     private DevMapMarkerFile markerFile = new();
+    private readonly IReadOnlyList<DevMapMarker> linkerMarkers;
     private ForkedTowerEventObjFile forkedTowerEventObjFile = new();
     private DevMapMarker? pendingEdit;
     private ForkedTowerEventObjRecord? pendingTowerTrapEdit;
@@ -146,6 +150,7 @@ public class DevMapModule : Module
     public DevMapModule(Plugin plugin, Config config)
         : base(plugin, config)
     {
+        linkerMarkers = NorthernLinkerMarkerCatalog.Load();
         LoadMarkers();
         LoadForkedTowerEventObjects();
         Svc.AddonLifecycle.RegisterListener(
@@ -163,7 +168,10 @@ public class DevMapModule : Module
 
     public IReadOnlyList<DevMapMarker> GetTelemetryMarkersSnapshot()
     {
-        return markerFile.Markers.Select(CloneMarker).ToList();
+        return markerFile.Markers
+            .Where(marker => !IsSupersededByLinkerCatalog(marker))
+            .Select(CloneMarker)
+            .ToList();
     }
 
     public IReadOnlyList<ForkedTowerEventObjRecord> GetTelemetryTowerObjectsSnapshot()
@@ -402,7 +410,8 @@ public class DevMapModule : Module
 
     private unsafe void AutoScan()
     {
-        if (!PluginConfig.DevModeEnabled
+        if (!WorldObjectScanGuard.IsSafe()
+            || !PluginConfig.DevModeEnabled
             || !ZoneData.IsInPluginTerritory()
             || DateTime.UtcNow < nextAutoScanAt)
         {
@@ -573,6 +582,12 @@ public class DevMapModule : Module
 
     private unsafe void AutoScanReadOnlyMapContent()
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            monsterMovementTracks.Clear();
+            return;
+        }
+
         var now = DateTime.UtcNow;
         if (now < nextReadOnlyScanAt)
         {
@@ -993,6 +1008,18 @@ public class DevMapModule : Module
             return false;
         }
 
+        if (linkerMarkers.Count > 0
+            && territoryId == NorthernLinkerMarkerCatalog.TerritoryId
+            && (NorthernLinkerMarkerCatalog.IsManagedType(type)
+                || (type == DevMarkerType.UnknownChest
+                    && linkerMarkers.Any(marker =>
+                        marker.MapId == mapId
+                        && HorizontalDistance(marker.Position, position) <= ChestMergeDistance
+                    ))))
+        {
+            return false;
+        }
+
         var sameMap = markerFile.Markers
             .Where(marker => marker.TerritoryId == territoryId && marker.MapId == mapId)
             .ToList();
@@ -1171,6 +1198,7 @@ public class DevMapModule : Module
             or DevMarkerType.BronzeChest
             or DevMarkerType.FortuneCarrotChest
             or DevMarkerType.PotChest
+            or DevMarkerType.RerollChest
             or DevMarkerType.UnknownChest;
     }
 
@@ -1706,6 +1734,15 @@ public class DevMapModule : Module
 
     private void DrawDevMapUi()
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            // AreaMap may be finalized without another usable draw callback
+            // during zone transitions. Never carry its native pointer into the
+            // next territory.
+            areaMapAddonAddress = nint.Zero;
+            return;
+        }
+
         GetModule<ForkedTowerModule>().EnsureRunLifecycle();
         AutoScanReadOnlyMapContent();
         // Ocelot's normal update loop is deliberately limited to South Horn.
@@ -1747,6 +1784,7 @@ public class DevMapModule : Module
         var sharedMarkers = GetSharedMarkers();
         var hasSharedDrawableMarkers = sharedMarkers.Any(IsSharedDrawableMarker);
         if (markerFile.Markers.Count == 0
+            && linkerMarkers.Count == 0
             && !hasSharedDrawableMarkers
             && (!PluginConfig.DevModeEnabled
                 || !PluginConfig.ShowForkedTowerEventObjectsOnMap
@@ -1817,6 +1855,7 @@ public class DevMapModule : Module
                      m.TerritoryId == territoryId
                      && m.MapId == mapId
                      && IsMarkerVisible(m.Type)
+                     && !IsSupersededByLinkerCatalog(m)
                  ))
         {
             if (marker.Type == DevMarkerType.Monster)
@@ -1848,6 +1887,33 @@ public class DevMapModule : Module
             );
         }
 
+        foreach (var marker in linkerMarkers.Where(m =>
+                     m.TerritoryId == territoryId
+                     && m.MapId == mapId
+                     && IsMarkerVisible(m.Type)
+                 ))
+        {
+            var mapPosition = new Vector2(marker.X, marker.Z) * sheetScale + sheetOffset;
+            var screenPosition = center
+                                 - (pan + new Vector2(1024f)) * panZoom
+                                 + (mapPosition + new Vector2(1024f)) * markerZoom;
+            if (screenPosition.X < clipMin.X || screenPosition.X > clipMax.X
+                || screenPosition.Y < clipMin.Y || screenPosition.Y > clipMax.Y)
+            {
+                continue;
+            }
+
+            DrawMarker(
+                drawList,
+                marker,
+                screenPosition,
+                uiScale,
+                false,
+                false,
+                "Eureka Linker 权威点位（只读）"
+            );
+        }
+
         foreach (var sharedMarker in sharedMarkers.Where(marker =>
                      marker.TerritoryId == territoryId
                      && marker.MapId == mapId
@@ -1858,6 +1924,7 @@ public class DevMapModule : Module
                               StringComparison.OrdinalIgnoreCase
                           )
                           && marker.Level == 1)
+                     && !IsSupersededByLinkerCatalog(marker)
                      && !HasLocalEquivalent(marker)
                  ))
         {
@@ -2561,6 +2628,7 @@ public class DevMapModule : Module
     private unsafe void DrawMarkerFilterOverlay()
     {
         if (markerFile.Markers.Count == 0
+            && linkerMarkers.Count == 0
             && !GetSharedMarkers().Any(marker => TryGetSharedDevMarkerType(marker, out _)))
         {
             return;
@@ -2757,6 +2825,7 @@ public class DevMapModule : Module
             DevMarkerType.FortuneCarrot or DevMarkerType.FortuneCarrotChest =>
                 DevMapMarkerVisibility.FortuneCarrot,
             DevMarkerType.PotChest => DevMapMarkerVisibility.PotChest,
+            DevMarkerType.RerollChest => DevMapMarkerVisibility.RerollChest,
             DevMarkerType.Fate => DevMapMarkerVisibility.Fate,
             DevMarkerType.CriticalEncounter => DevMapMarkerVisibility.CriticalEncounter,
             DevMarkerType.InvestigationLocation =>
@@ -2792,7 +2861,12 @@ public class DevMapModule : Module
             return true;
         }
 
-        if (!string.Equals(marker.Source, "dev-map", StringComparison.OrdinalIgnoreCase)
+        if (!(string.Equals(marker.Source, "dev-map", StringComparison.OrdinalIgnoreCase)
+              || string.Equals(
+                  marker.Source,
+                  "linker-catalog",
+                  StringComparison.OrdinalIgnoreCase
+              ))
             || !Enum.TryParse(marker.Kind, true, out type))
         {
             return false;
@@ -2807,11 +2881,49 @@ public class DevMapModule : Module
             or DevMarkerType.BronzeChest
             or DevMarkerType.FortuneCarrot
             or DevMarkerType.PotChest
+            or DevMarkerType.RerollChest
             or DevMarkerType.Fate
             or DevMarkerType.CriticalEncounter
             or DevMarkerType.InvestigationLocation
             or DevMarkerType.UnknownChest
             or DevMarkerType.Monster;
+    }
+
+    private bool IsSupersededByLinkerCatalog(TelemetryMarker marker)
+    {
+        if (linkerMarkers.Count == 0
+            || marker.TerritoryId != NorthernLinkerMarkerCatalog.TerritoryId
+            || !TryGetSharedDevMarkerType(marker, out var type))
+        {
+            return false;
+        }
+
+        return NorthernLinkerMarkerCatalog.IsManagedType(type)
+               || (type == DevMarkerType.UnknownChest
+                   && linkerMarkers.Any(catalogMarker =>
+                       catalogMarker.MapId == marker.MapId
+                       && HorizontalDistance(
+                           catalogMarker.Position,
+                           new Vector3(marker.X, marker.Y, marker.Z)
+                       ) <= ChestMergeDistance
+                   ));
+    }
+
+    private bool IsSupersededByLinkerCatalog(DevMapMarker marker)
+    {
+        if (linkerMarkers.Count == 0
+            || marker.TerritoryId != NorthernLinkerMarkerCatalog.TerritoryId)
+        {
+            return false;
+        }
+
+        return NorthernLinkerMarkerCatalog.IsManagedType(marker.Type)
+               || (marker.Type == DevMarkerType.UnknownChest
+                   && linkerMarkers.Any(catalogMarker =>
+                       catalogMarker.MapId == marker.MapId
+                       && HorizontalDistance(catalogMarker.Position, marker.Position)
+                       <= ChestMergeDistance
+                   ));
     }
 
     private static bool IsSharedTrapMarker(TelemetryMarker marker)
@@ -2926,7 +3038,8 @@ public class DevMapModule : Module
         Vector2 center,
         float uiScale,
         bool editable = true,
-        bool shared = false
+        bool shared = false,
+        string? readOnlySource = null
     )
     {
         if (marker.Type == DevMarkerType.Monster)
@@ -2989,18 +3102,15 @@ public class DevMapModule : Module
             ? GetLabel(marker.Type)
             : marker.Name;
         var eventId = marker.EventId > 0 ? $"\nEventId: {marker.EventId}" : "";
+        var sourceLabel = readOnlySource
+                          ?? (shared
+                              ? "社区共享标记（只读）"
+                              : "只读自动采集标记");
         ImGui.SetTooltip(
             $"{markerName}{eventId}\n"
-            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n只读自动采集标记"
+            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
+            + sourceLabel
         );
-        if (!editable && shared)
-        {
-            ImGui.SetTooltip(
-                $"{markerName}{eventId}\n"
-                + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
-                + "社区共享标记（只读）"
-            );
-        }
 
     }
 
@@ -3822,6 +3932,7 @@ public class DevMapModule : Module
             DevMarkerType.FortuneCarrot => "好运胡萝卜",
             DevMarkerType.FortuneCarrotChest => "好运胡萝卜",
             DevMarkerType.PotChest => "罐子宝箱",
+            DevMarkerType.RerollChest => "重抽宝箱",
             DevMarkerType.Fate => "FATE",
             DevMarkerType.CriticalEncounter => "CE",
             DevMarkerType.InvestigationLocation => "调查地点",
@@ -3840,6 +3951,7 @@ public class DevMapModule : Module
             DevMarkerType.FortuneCarrot => "胡",
             DevMarkerType.FortuneCarrotChest => "胡",
             DevMarkerType.PotChest => "罐",
+            DevMarkerType.RerollChest => "重",
             DevMarkerType.Fate => "F",
             DevMarkerType.CriticalEncounter => "CE",
             DevMarkerType.InvestigationLocation => "查",
@@ -3858,6 +3970,7 @@ public class DevMapModule : Module
             DevMarkerType.FortuneCarrot => new Vector4(0.62f, 1f, 0.4f, 1f),
             DevMarkerType.FortuneCarrotChest => new Vector4(0.62f, 1f, 0.4f, 1f),
             DevMarkerType.PotChest => new Vector4(1f, 0.72f, 0.35f, 1f),
+            DevMarkerType.RerollChest => new Vector4(0.35f, 0.82f, 1f, 1f),
             DevMarkerType.Fate => new Vector4(1f, 0.82f, 0.2f, 1f),
             DevMarkerType.CriticalEncounter => new Vector4(0.82f, 0.4f, 1f, 1f),
             DevMarkerType.InvestigationLocation => new Vector4(0.25f, 0.9f, 1f, 1f),

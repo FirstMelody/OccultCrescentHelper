@@ -1,5 +1,456 @@
 {
-  "version": 1,
+  "version": 7,
+  "groups": [
+    {
+      "id": "lower-corridor-entrance-horizontal",
+      "name": "下层回廊入口·横向雷组",
+      "territoryId": 1346,
+      "mapId": 1178,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 554.5, "y": -700.0, "z": 922.5 },
+        { "x": 561.5, "y": -700.0, "z": 922.5 },
+        { "x": 568.5, "y": -700.0, "z": 922.5 },
+        { "x": 554.5, "y": -700.0, "z": 929.5 },
+        { "x": 561.5, "y": -700.0, "z": 929.5 },
+        { "x": 568.5, "y": -700.0, "z": 929.5 },
+        { "x": 631.5, "y": -700.0, "z": 922.5 },
+        { "x": 638.5, "y": -700.0, "z": 922.5 },
+        { "x": 645.5, "y": -700.0, "z": 922.5 },
+        { "x": 631.5, "y": -700.0, "z": 929.5 },
+        { "x": 638.5, "y": -700.0, "z": 929.5 },
+        { "x": 645.5, "y": -700.0, "z": 929.5 }
+      ]
+    },
+    {
+      "id": "lower-corridor-entrance-south",
+      "name": "下层回廊入口·纵向雷组",
+      "territoryId": 1346,
+      "mapId": 1178,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 596.5, "y": -700.0, "z": 943.0 },
+        { "x": 603.5, "y": -700.0, "z": 943.0 },
+        { "x": 596.5, "y": -700.0, "z": 950.0 },
+        { "x": 603.5, "y": -700.0, "z": 950.0 },
+        { "x": 596.5, "y": -700.0, "z": 957.0 },
+        { "x": 603.5, "y": -700.0, "z": 957.0 }
+      ]
+    },
+    {
+      "id": "lower-central-corridor-swappable-pair",
+      "name": "下层中央回廊·大小雷互换组",
+      "territoryId": 1346,
+      "mapId": 1181,
+      "kinds": ["SmallTrap", "BigTrap"],
+      "maxActive": 2,
+      "requiredCounts": {
+        "SmallTrap": 1,
+        "BigTrap": 1
+      },
+      "showCandidates": false,
+      "displayMode": "small-big-swap",
+      "ruleText": "两个位置必定各生成 1 个雷：一大一小，位置可能互换",
+      "positions": [
+        { "x": 596.5, "y": -684.0, "z": 776.0 },
+        { "x": 603.5, "y": -684.0, "z": 776.0 }
+      ]
+    },
+    {
+      "id": "middle-corridor-west-small",
+      "name": "中层回廊·西侧小雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 491.5, "y": -700.0, "z": 120.5 },
+        { "x": 498.5, "y": -700.0, "z": 120.5 },
+        { "x": 491.5, "y": -700.0, "z": 127.5 },
+        { "x": 498.5, "y": -700.0, "z": 127.5 }
+      ]
+    },
+    {
+      "id": "middle-corridor-north-small",
+      "name": "中层回廊·北侧小雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 530.5, "y": -700.0, "z": 81.5 },
+        { "x": 537.5, "y": -700.0, "z": 81.5 },
+        { "x": 530.5, "y": -700.0, "z": 88.5 },
+        { "x": 537.5, "y": -700.0, "z": 88.5 }
+      ]
+    },
+    {
+      "id": "middle-corridor-west-big",
+      "name": "中层回廊·西侧大雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "BigTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 528.343, "y": -700.0, "z": 118.343 },
+        { "x": 539.657, "y": -700.0, "z": 118.343 },
+        { "x": 534.0, "y": -700.0, "z": 124.0 },
+        { "x": 528.343, "y": -700.0, "z": 129.657 },
+        { "x": 539.657, "y": -700.0, "z": 129.657 }
+      ]
+    },
+    {
+      "id": "middle-corridor-south-small",
+      "name": "中层回廊·南侧小雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 530.5, "y": -700.0, "z": 159.5 },
+        { "x": 537.5, "y": -700.0, "z": 159.5 },
+        { "x": 530.5, "y": -700.0, "z": 166.5 },
+        { "x": 537.5, "y": -700.0, "z": 166.5 }
+      ]
+    },
+    {
+      "id": "middle-corridor-east-small",
+      "name": "中层回廊·东侧小雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 560.0, "y": -700.0, "z": 120.5 },
+        { "x": 568.0, "y": -700.0, "z": 120.5 },
+        { "x": 560.0, "y": -700.0, "z": 127.5 },
+        { "x": 568.0, "y": -700.0, "z": 127.5 }
+      ]
+    },
+    {
+      "id": "middle-corridor-center-small",
+      "name": "中层回廊·中央圆台小雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "SmallTrap",
+      "maxActive": 5,
+      "positions": [
+        { "x": 582.0, "y": -700.0, "z": 124.0 },
+        { "x": 585.0, "y": -700.0, "z": 117.0 },
+        { "x": 585.0, "y": -700.0, "z": 131.0 },
+        { "x": 589.0, "y": -699.95, "z": 124.0 },
+        { "x": 592.0, "y": -699.95, "z": 116.0 },
+        { "x": 592.0, "y": -699.95, "z": 132.0 },
+        { "x": 593.0, "y": -700.0, "z": 109.0 },
+        { "x": 593.0, "y": -700.0, "z": 139.0 },
+        { "x": 600.0, "y": -699.956, "z": 107.0 },
+        { "x": 600.0, "y": -699.95, "z": 113.0 },
+        { "x": 600.0, "y": -699.95, "z": 135.0 },
+        { "x": 600.0, "y": -699.956, "z": 141.0 },
+        { "x": 607.0, "y": -700.0, "z": 109.0 },
+        { "x": 607.0, "y": -700.0, "z": 139.0 },
+        { "x": 608.0, "y": -699.95, "z": 116.0 },
+        { "x": 608.0, "y": -699.95, "z": 132.0 },
+        { "x": 611.0, "y": -699.95, "z": 124.0 },
+        { "x": 615.0, "y": -700.0, "z": 117.0 },
+        { "x": 615.0, "y": -700.0, "z": 131.0 },
+        { "x": 618.0, "y": -700.0, "z": 124.0 }
+      ]
+    },
+    {
+      "id": "middle-corridor-east-big",
+      "name": "中层回廊·东侧大雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "BigTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 634.5, "y": -700.0, "z": 117.0 },
+        { "x": 642.5, "y": -700.0, "z": 117.0 },
+        { "x": 634.5, "y": -700.0, "z": 124.0 },
+        { "x": 642.5, "y": -700.0, "z": 124.0 },
+        { "x": 634.5, "y": -700.0, "z": 131.0 },
+        { "x": 642.5, "y": -700.0, "z": 131.0 }
+      ]
+    },
+    {
+      "id": "middle-corridor-far-east-big",
+      "name": "中层回廊·最东侧大雷组",
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "BigTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 669.5, "y": -700.0, "z": 117.0 },
+        { "x": 677.5, "y": -700.0, "z": 117.0 },
+        { "x": 669.5, "y": -700.0, "z": 124.0 },
+        { "x": 677.5, "y": -700.0, "z": 124.0 },
+        { "x": 669.5, "y": -700.0, "z": 131.0 },
+        { "x": 677.5, "y": -700.0, "z": 131.0 }
+      ]
+    },
+    {
+      "id": "lower-east-corridor-north-neck",
+      "name": "下层东侧回廊·北侧通道雷组",
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 763.5, "y": -690.0, "z": 660.0 },
+        { "x": 770.5, "y": -690.0, "z": 660.0 },
+        { "x": 763.5, "y": -690.0, "z": 672.0 },
+        { "x": 770.5, "y": -690.0, "z": 672.0 }
+      ]
+    },
+    {
+      "id": "lower-east-corridor-upper-nook",
+      "name": "下层东侧回廊·上侧圆台雷组",
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 717.5, "y": -680.0, "z": 732.0 },
+        { "x": 723.5, "y": -680.0, "z": 728.5 },
+        { "x": 723.5, "y": -680.0, "z": 735.5 },
+        { "x": 730.5, "y": -680.0, "z": 728.5 },
+        { "x": 730.5, "y": -680.0, "z": 735.5 },
+        { "x": 736.5, "y": -680.0, "z": 732.0 }
+      ]
+    },
+    {
+      "id": "lower-east-corridor-lower-nook",
+      "name": "下层东侧回廊·下侧圆台雷组",
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "BigTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 717.5, "y": -680.0, "z": 784.0 },
+        { "x": 723.5, "y": -680.0, "z": 780.5 },
+        { "x": 723.5, "y": -680.0, "z": 787.5 },
+        { "x": 730.5, "y": -680.0, "z": 780.5 },
+        { "x": 730.5, "y": -680.0, "z": 787.5 },
+        { "x": 736.5, "y": -680.0, "z": 784.0 }
+      ]
+    },
+    {
+      "id": "lower-east-corridor-center-grid",
+      "name": "下层东侧回廊·中央大雷组",
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "BigTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 800.0, "y": -700.0, "z": 772.0 },
+        { "x": 807.0, "y": -700.0, "z": 772.0 },
+        { "x": 814.0, "y": -700.0, "z": 772.0 },
+        { "x": 800.0, "y": -700.0, "z": 782.0 },
+        { "x": 807.0, "y": -700.0, "z": 782.0 },
+        { "x": 814.0, "y": -700.0, "z": 782.0 },
+        { "x": 800.0, "y": -700.0, "z": 792.0 },
+        { "x": 807.0, "y": -700.0, "z": 792.0 },
+        { "x": 814.0, "y": -700.0, "z": 792.0 }
+      ]
+    },
+    {
+      "id": "lower-east-corridor-east-upper",
+      "name": "下层东侧回廊·东侧上方雷组",
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 825.0, "y": -698.0, "z": 758.5 },
+        { "x": 835.0, "y": -698.0, "z": 758.5 },
+        { "x": 825.0, "y": -698.0, "z": 765.5 },
+        { "x": 835.0, "y": -698.0, "z": 765.5 }
+      ]
+    },
+    {
+      "id": "lower-east-corridor-east-lower",
+      "name": "下层东侧回廊·东侧下方雷组",
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 825.0, "y": -698.0, "z": 798.5 },
+        { "x": 835.0, "y": -698.0, "z": 798.5 },
+        { "x": 825.0, "y": -698.0, "z": 805.5 },
+        { "x": 835.0, "y": -698.0, "z": 805.5 }
+      ]
+    },
+    {
+      "id": "lower-east-corridor-south-neck",
+      "name": "下层东侧回廊·南侧通道雷组",
+      "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 678.5, "y": -680.0, "z": 849.0 },
+        { "x": 685.5, "y": -680.0, "z": 849.0 },
+        { "x": 678.5, "y": -680.0, "z": 861.0 },
+        { "x": 685.5, "y": -680.0, "z": 861.0 }
+      ]
+    },
+    {
+      "id": "lower-west-corridor-north-neck",
+      "name": "下层西侧回廊·北侧通道雷组",
+      "territoryId": 1346,
+      "mapId": 1179,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 429.5, "y": -690.0, "z": 660.0 },
+        { "x": 436.5, "y": -690.0, "z": 660.0 },
+        { "x": 429.5, "y": -690.0, "z": 672.0 },
+        { "x": 436.5, "y": -690.0, "z": 672.0 }
+      ]
+    },
+    {
+      "id": "lower-west-corridor-upper-nook",
+      "name": "下层西侧回廊·上侧圆台雷组",
+      "territoryId": 1346,
+      "mapId": 1179,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 463.5, "y": -680.0, "z": 732.0 },
+        { "x": 469.5, "y": -680.0, "z": 728.5 },
+        { "x": 469.5, "y": -680.0, "z": 735.5 },
+        { "x": 476.5, "y": -680.0, "z": 728.5 },
+        { "x": 476.5, "y": -680.0, "z": 735.5 },
+        { "x": 482.5, "y": -680.0, "z": 732.0 }
+      ]
+    },
+    {
+      "id": "lower-west-corridor-lower-nook",
+      "name": "下层西侧回廊·下侧圆台雷组",
+      "territoryId": 1346,
+      "mapId": 1179,
+      "kind": "BigTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 463.5, "y": -680.0, "z": 784.0 },
+        { "x": 469.5, "y": -680.0, "z": 780.5 },
+        { "x": 469.5, "y": -680.0, "z": 787.5 },
+        { "x": 476.5, "y": -680.0, "z": 780.5 },
+        { "x": 476.5, "y": -680.0, "z": 787.5 },
+        { "x": 482.5, "y": -680.0, "z": 784.0 }
+      ]
+    },
+    {
+      "id": "lower-west-corridor-center-grid",
+      "name": "下层西侧回廊·中央大雷组",
+      "territoryId": 1346,
+      "mapId": 1179,
+      "kind": "BigTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 386.0, "y": -700.0, "z": 772.0 },
+        { "x": 393.0, "y": -700.0, "z": 772.0 },
+        { "x": 400.0, "y": -700.0, "z": 772.0 },
+        { "x": 386.0, "y": -700.0, "z": 782.0 },
+        { "x": 393.0, "y": -700.0, "z": 782.0 },
+        { "x": 400.0, "y": -700.0, "z": 782.0 },
+        { "x": 386.0, "y": -700.0, "z": 792.0 },
+        { "x": 393.0, "y": -700.0, "z": 792.0 },
+        { "x": 400.0, "y": -700.0, "z": 792.0 }
+      ]
+    },
+    {
+      "id": "lower-west-corridor-west-upper",
+      "name": "下层西侧回廊·西侧上方雷组",
+      "territoryId": 1346,
+      "mapId": 1179,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 365.0, "y": -698.0, "z": 758.5 },
+        { "x": 375.0, "y": -698.0, "z": 758.5 },
+        { "x": 365.0, "y": -698.0, "z": 765.5 },
+        { "x": 375.0, "y": -698.0, "z": 765.5 }
+      ]
+    },
+    {
+      "id": "lower-west-corridor-west-lower",
+      "name": "下层西侧回廊·西侧下方雷组",
+      "territoryId": 1346,
+      "mapId": 1179,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 365.0, "y": -698.0, "z": 798.5 },
+        { "x": 375.0, "y": -698.0, "z": 798.5 },
+        { "x": 365.0, "y": -698.0, "z": 805.5 },
+        { "x": 375.0, "y": -698.0, "z": 805.5 }
+      ]
+    },
+    {
+      "id": "lower-west-corridor-south-neck",
+      "name": "下层西侧回廊·南侧通道雷组",
+      "territoryId": 1346,
+      "mapId": 1179,
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "positions": [
+        { "x": 514.5, "y": -680.0, "z": 849.0 },
+        { "x": 521.5, "y": -680.0, "z": 849.0 },
+        { "x": 514.5, "y": -680.0, "z": 861.0 },
+        { "x": 521.5, "y": -680.0, "z": 861.0 }
+      ]
+    },
+    {
+      "id": "knowledge-pinnacle-north",
+      "name": "知识的巅峰·北侧雷组",
+      "territoryId": 1346,
+      "mapId": 1189,
+      "kind": "SmallTrap",
+      "maxActive": 2,
+      "positions": [
+        { "x": -9.0, "y": -707.95, "z": -430.0 },
+        { "x": -4.0, "y": -707.95, "z": -430.0 },
+        { "x": 0.0, "y": -707.95, "z": -433.0 },
+        { "x": 0.0, "y": -707.95, "z": -427.0 },
+        { "x": 10.0, "y": -708.0, "z": -430.0 }
+      ]
+    },
+    {
+      "id": "knowledge-pinnacle-southeast",
+      "name": "知识的巅峰·东南侧雷组",
+      "territoryId": 1346,
+      "mapId": 1189,
+      "kind": "SmallTrap",
+      "maxActive": 2,
+      "positions": [
+        { "x": 27.0, "y": -715.95, "z": -394.0 },
+        { "x": 36.0, "y": -715.95, "z": -403.0 },
+        { "x": 36.0, "y": -715.95, "z": -397.0 },
+        { "x": 36.0, "y": -715.95, "z": -391.0 },
+        { "x": 46.0, "y": -716.0, "z": -394.0 }
+      ]
+    },
+    {
+      "id": "lower-side-corridors-cross-map-pair",
+      "name": "下层东西侧回廊·跨侧互斥雷组",
+      "territoryId": 1346,
+      "mapIds": [1179, 1180],
+      "kind": "SmallTrap",
+      "maxActive": 1,
+      "crossMap": true,
+      "positions": [
+        { "mapId": 1180, "x": 639.0, "y": -680.0, "z": 825.5 },
+        { "mapId": 1180, "x": 639.0, "y": -680.0, "z": 832.5 },
+        { "mapId": 1179, "x": 561.0, "y": -680.0, "z": 825.5 },
+        { "mapId": 1179, "x": 561.0, "y": -680.0, "z": 832.5 }
+      ]
+    }
+  ],
   "candidates": [
     {
       "territoryId": 1346,
@@ -29,6 +480,19 @@
     },
     {
       "territoryId": 1346,
+      "mapId": 1180,
+      "kind": "SmallTrap",
+      "baseId": 2014584,
+      "x": 763.5,
+      "y": -690.0,
+      "z": 672.0,
+      "mechanicRadius": 7.0,
+      "status": "inferred",
+      "group": "lower-east-corridor-north-neck",
+      "note": "由同组另外三个小雷点构成的 7×12 矩形补全左下点"
+    },
+    {
+      "territoryId": 1346,
       "mapId": 1178,
       "kind": "SmallTrap",
       "baseId": 2014584,
@@ -37,7 +501,7 @@
       "z": 922.5,
       "mechanicRadius": 7.0,
       "status": "inferred",
-      "group": "lower-corridor-entrance-west",
+      "group": "lower-corridor-entrance-horizontal",
       "note": "由同组 7 yalms 间距的 3×2 网格补全右上点"
     },
     {
@@ -50,7 +514,7 @@
       "z": 929.5,
       "mechanicRadius": 7.0,
       "status": "inferred",
-      "group": "lower-corridor-entrance-west",
+      "group": "lower-corridor-entrance-horizontal",
       "note": "由同组 7 yalms 间距的 3×2 网格补全中下点"
     },
     {
@@ -65,6 +529,45 @@
       "status": "inferred",
       "group": "lower-corridor-entrance-south",
       "note": "由同组 7 yalms 间距的 2×3 网格补全右下点"
+    },
+    {
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "SmallTrap",
+      "baseId": 2014584,
+      "x": 537.5,
+      "y": -700.0,
+      "z": 166.5,
+      "mechanicRadius": 7.0,
+      "status": "inferred",
+      "group": "middle-corridor-south-small",
+      "note": "由同组 7×7 yalms 的 2×2 网格补全右下点"
+    },
+    {
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "BigTrap",
+      "baseId": 2014585,
+      "x": 642.5,
+      "y": -700.0,
+      "z": 117.0,
+      "mechanicRadius": 30.0,
+      "status": "inferred",
+      "group": "middle-corridor-east-big",
+      "note": "由同组 8×7 yalms 的 2×3 网格补全右上点"
+    },
+    {
+      "territoryId": 1346,
+      "mapId": 1182,
+      "kind": "BigTrap",
+      "baseId": 2014585,
+      "x": 669.5,
+      "y": -700.0,
+      "z": 117.0,
+      "mechanicRadius": 30.0,
+      "status": "inferred",
+      "group": "middle-corridor-far-east-big",
+      "note": "由同组 8×7 yalms 的 2×3 网格补全左上点"
     }
   ]
 }

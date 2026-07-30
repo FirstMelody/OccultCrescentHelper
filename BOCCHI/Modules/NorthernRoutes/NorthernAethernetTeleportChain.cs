@@ -203,7 +203,8 @@ public sealed class NorthernAethernetTeleportChain(
                         var arrival = NorthernRouteStore.GetArrivalPosition(
                             destinationRoute
                         );
-                        if (destinationRoute.HasArrival
+                        if (!busy
+                            && destinationRoute.HasArrival
                             && Player.DistanceTo(arrival) <= 25f)
                         {
                             return true;
@@ -211,6 +212,18 @@ public sealed class NorthernAethernetTeleportChain(
 
                         if (sawTeleportBusyState && !busy)
                         {
+                            if (destinationRoute.HasArrival
+                                && Player.DistanceTo(arrival) > 25f)
+                            {
+                                DebugLog.Debug(
+                                    $"Northern magic route arrival mismatch: "
+                                    + $"selected={destinationRoute.Name}, "
+                                    + $"player={Player.Position}, "
+                                    + $"expected={arrival}, "
+                                    + $"distance={Player.DistanceTo(arrival):F1}"
+                                );
+                            }
+
                             return true;
                         }
 

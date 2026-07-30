@@ -50,12 +50,17 @@ public class ForkedTowerModule(Plugin plugin, Config config) : Module(plugin, co
 
     public override void Update(UpdateContext context)
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            return;
+        }
+
         TowerRun.Update(context);
     }
 
     public override void Render(RenderContext context)
     {
-        if (!EnsureRunLifecycle())
+        if (!WorldObjectScanGuard.IsSafe() || !EnsureRunLifecycle())
         {
             return;
         }

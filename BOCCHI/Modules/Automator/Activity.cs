@@ -100,6 +100,7 @@ public abstract class Activity
                         ChainHelper.MountChain()
                     )
                     .Then(GetPathfindingWatcher(states))
+                    .Then(GetArrivalChain())
                     .Then(_ => state = GetPostPathfindingState());
             }
 
@@ -150,6 +151,7 @@ public abstract class Activity
 
             chain
                 .Then(GetPathfindingWatcher(states))
+                .Then(GetArrivalChain())
                 .Then(_ => state = GetPostPathfindingState());
 
             return chain;
@@ -161,6 +163,23 @@ public abstract class Activity
     {
         return () =>
         {
+            var participationState = data.Type == EventType.Fate
+                ? State.InFate
+                : State.InCriticalEncounter;
+            var hasEnteredParticipation =
+                states.GetState() == participationState;
+
+            bool IsParticipationFinished()
+            {
+                var currentState = states.GetState();
+                hasEnteredParticipation |= currentState == participationState;
+
+                return !IsValid()
+                       || IsParticipationComplete()
+                       || (hasEnteredParticipation
+                           && currentState == State.Idle);
+            }
+
             return Chain.Create("Illegal:Participating")
                 .ConditionalThen(_ => module.Config.ShouldToggleAiProvider, _ => module.Config.AiProvider.On())
                 .Then(_ => vnav.Stop())
@@ -168,13 +187,13 @@ public abstract class Activity
                 {
                     if (!module.Config.ShouldForceTarget || !EzThrottler.Throttle("Participating.ForceTarget", 500))
                     {
-                        return states.GetState() == State.Idle;
+                        return IsParticipationFinished();
                     }
 
                     var enemies = GetEnemies();
                     Svc.Targets.Target = module.Config.ShouldForceTargetCentralEnemy ? enemies.Centroid() : enemies.Closest();
 
-                    return states.GetState() == State.Idle;
+                    return IsParticipationFinished();
                 }, new TaskManagerConfiguration { TimeLimitMS = int.MaxValue }))
                 .Then(_ => state = ActivityState.Done);
         };
@@ -191,6 +210,11 @@ public abstract class Activity
     }
 
     protected abstract bool IsActivityTarget(IBattleNpc obj);
+
+    protected virtual bool IsParticipationComplete()
+    {
+        return false;
+    }
 
     private AethernetData GetAethernetData()
     {
@@ -218,7 +242,17 @@ public abstract class Activity
 
     protected abstract TaskManagerTask GetPathfindingWatcher(StateManagerModule states);
 
+    protected virtual Func<Chain> GetArrivalChain()
+    {
+        return () => Chain.Create();
+    }
+
     public abstract bool IsValid();
+
+    public virtual bool IsEnabled()
+    {
+        return true;
+    }
 
     protected abstract Vector3 GetPosition();
 

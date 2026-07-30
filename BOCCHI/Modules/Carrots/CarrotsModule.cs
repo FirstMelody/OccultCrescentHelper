@@ -71,7 +71,8 @@ public class CarrotsModule(Plugin plugin, Config config) : Module(plugin, config
 
     private void DrawNorthernRadar()
     {
-        if (!ZoneData.IsInNorthernExpedition()
+        if (!WorldObjectScanGuard.IsSafe()
+            || !ZoneData.IsInNorthernExpedition()
             || ZoneData.IsInForkedTower()
             || !Config.ShouldDrawLineToCarrots
             || Svc.Objects.LocalPlayer is not { } player)

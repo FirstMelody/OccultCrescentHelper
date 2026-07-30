@@ -8,6 +8,7 @@ public enum DevMarkerType
     // Kept for backwards-compatible JSON migration. New markers use FortuneCarrot.
     FortuneCarrotChest,
     PotChest,
+    RerollChest,
     Fate,
     CriticalEncounter,
     // Kept only so v3 JSON can be read and purged during migration.

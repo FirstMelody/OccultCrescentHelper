@@ -17,7 +17,7 @@ public class TowerRun(string hash)
 {
     public readonly string Hash = hash;
 
-    private readonly Dictionary<string, IEventObj> DiscoveredTraps = [];
+    private readonly HashSet<string> DiscoveredTraps = [];
 
     private readonly HashSet<string> DiscoveredCandidates = [];
 
@@ -35,7 +35,7 @@ public class TowerRun(string hash)
 
     public bool HasDiscoveredTrap(Vector3 position, OccultObjectType type)
     {
-        return DiscoveredTraps.ContainsKey(new TrapDatum(position, type).GetKey());
+        return DiscoveredTraps.Contains(new TrapDatum(position, type).GetKey());
     }
 
     public void ObserveCandidate(uint baseId, Vector3 position)
@@ -62,7 +62,8 @@ public class TowerRun(string hash)
     {
         foreach (var trap in GetNearbyTraps())
         {
-            if (!DiscoveredTraps.TryAdd(trap.GetKey(), trap))
+            var trapKey = trap.GetKey();
+            if (!DiscoveredTraps.Add(trapKey))
             {
                 continue;
             }
@@ -75,7 +76,7 @@ public class TowerRun(string hash)
                 TrackedGroups.Add(group.GetKey(), trackedGroup);
             }
 
-            trackedGroup.Traps.Add(trap);
+            trackedGroup.Observe(trapKey);
         }
     }
 

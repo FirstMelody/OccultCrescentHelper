@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using BOCCHI.Data;
 using Dalamud.Game.ClientState.Objects.Types;
 using ECommons.DalamudServices;
 using ECommons.GameFunctions;
@@ -14,13 +15,20 @@ public static class TargetHelper
 
     public static void Update()
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            Enemies = [];
+            return;
+        }
+
         Enemies = Svc.Objects.OfType<IBattleNpc>()
             .Where(o => o is
             {
                 IsDead: false,
                 IsTargetable: true,
             }).Where(o => o.IsHostile())
-            .OrderBy(Player.DistanceTo);
+            .OrderBy(Player.DistanceTo)
+            .ToList();
     }
 }
 

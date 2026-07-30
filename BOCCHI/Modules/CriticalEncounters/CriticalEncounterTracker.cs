@@ -35,6 +35,12 @@ public class CriticalEncounterTracker
 
     public unsafe void Tick(IFramework _)
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            CriticalEncounters.Clear();
+            return;
+        }
+
         var occultCrescent = PublicContentOccultCrescent.GetInstance();
         if (occultCrescent == null)
         {

@@ -4,6 +4,7 @@ using Microsoft.Data.Sqlite;
 public sealed class TelemetryStore
 {
     public const string LegacyUploaderHash = "LEGACY-TRUSTED-IMPORT";
+    public const string LinkerCatalogUploaderHash = "EUREKA-LINKER-CATALOG";
     private const int MaxPluginVersionLength = 40;
     private const int MaxNameLength = 160;
     private const double MaxCoordinateMagnitude = 2048;
@@ -23,6 +24,15 @@ public sealed class TelemetryStore
                 "CriticalEncounter",
                 "InvestigationLocation",
                 "UnknownChest",
+                "RerollChest",
+            ],
+            ["linker-catalog"] =
+            [
+                "SilverChest",
+                "BronzeChest",
+                "FortuneCarrot",
+                "PotChest",
+                "RerollChest",
             ],
             ["tower-eventobj"] = ["Unknown", "SmallTrap", "BigTrap"],
             ["monster"] = ["Monster"],
@@ -62,6 +72,24 @@ public sealed class TelemetryStore
         1189,
         1190,
         1191,
+    ];
+
+    private static readonly (double X, double Z)[] InvalidMiddleCampTrapPositions =
+    [
+        (491.5, 120.5),
+        (498.5, 120.5),
+        (530.5, 81.5),
+        (530.5, 88.5),
+        (537.5, 159.5),
+        (615.0, 117.0),
+        (634.5, 117.0),
+        (634.5, 124.0),
+        (642.5, 131.0),
+        (669.5, 124.0),
+        (669.5, 131.0),
+        (677.5, 117.0),
+        (677.5, 124.0),
+        (677.5, 131.0),
     ];
 
     private readonly string connectionString;
@@ -398,6 +426,48 @@ public sealed class TelemetryStore
         );
     }
 
+    public async Task SyncTrustedCatalogAsync(IReadOnlyCollection<TelemetryMarker> markers)
+    {
+        var normalizedMarkers = new List<TelemetryMarker>(markers.Count);
+        foreach (var marker in markers)
+        {
+            if (!string.Equals(marker.Source, "linker-catalog", StringComparison.Ordinal)
+                || !TryNormalize(marker, out var normalized))
+            {
+                throw new InvalidDataException("Linker marker catalog contains invalid records.");
+            }
+
+            normalizedMarkers.Add(normalized);
+        }
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.Transaction = (SqliteTransaction)transaction;
+            delete.CommandText =
+                """
+                DELETE FROM marker_reports
+                WHERE uploader_hash = $hash OR source = 'linker-catalog';
+                """;
+            delete.Parameters.AddWithValue("$hash", LinkerCatalogUploaderHash);
+            await delete.ExecuteNonQueryAsync();
+        }
+
+        foreach (var marker in normalizedMarkers)
+        {
+            await UpsertReportAsync(
+                connection,
+                transaction,
+                LinkerCatalogUploaderHash,
+                marker
+            );
+        }
+
+        await transaction.CommitAsync();
+    }
+
     public async Task<IReadOnlyList<PublicTelemetryMarker>> GetMarkersAsync(
         uint? territoryId,
         uint? mapId,
@@ -418,6 +488,7 @@ public sealed class TelemetryStore
                         CASE
                             WHEN uploader_hash = $legacy
                               OR uploader_hash = $authoritative
+                              OR uploader_hash = $linker
                             THEN id
                         END
                     ) AS trusted_report_id,
@@ -425,6 +496,17 @@ public sealed class TelemetryStore
                     COUNT(*) AS reporter_count
                 FROM marker_reports
                 WHERE NOT (source = 'monster' AND level = 1)
+                  AND NOT (
+                      source = 'dev-map'
+                      AND territory_id = 1346
+                      AND kind IN (
+                          'SilverChest',
+                          'BronzeChest',
+                          'FortuneCarrot',
+                          'PotChest',
+                          'RerollChest'
+                      )
+                  )
                 GROUP BY
                     source, kind, territory_id, map_id,
                     base_id_key, event_id_key, x, y, z
@@ -434,6 +516,7 @@ public sealed class TelemetryStore
                         CASE
                             WHEN uploader_hash = $legacy
                               OR uploader_hash = $authoritative
+                              OR uploader_hash = $linker
                             THEN 1
                             ELSE 0
                         END
@@ -487,6 +570,7 @@ public sealed class TelemetryStore
             """;
         command.Parameters.AddWithValue("$legacy", LegacyUploaderHash);
         command.Parameters.AddWithValue("$authoritative", authoritativeUploaderHash);
+        command.Parameters.AddWithValue("$linker", LinkerCatalogUploaderHash);
         command.Parameters.AddWithValue("$minimumReporters", minimumReporters);
         command.Parameters.AddWithValue(
             "$territory",
@@ -535,6 +619,17 @@ public sealed class TelemetryStore
                 WHERE ($territory IS NULL OR territory_id = $territory)
                   AND ($map IS NULL OR map_id = $map)
                   AND NOT (source = 'monster' AND level = 1)
+                  AND NOT (
+                      source = 'dev-map'
+                      AND territory_id = 1346
+                      AND kind IN (
+                          'SilverChest',
+                          'BronzeChest',
+                          'FortuneCarrot',
+                          'PotChest',
+                          'RerollChest'
+                      )
+                  )
                 GROUP BY
                     source, kind, territory_id, map_id,
                     base_id_key, event_id_key, x, y, z
@@ -544,6 +639,7 @@ public sealed class TelemetryStore
                         CASE
                             WHEN uploader_hash = $legacy
                               OR uploader_hash = $authoritative
+                              OR uploader_hash = $linker
                             THEN 1
                             ELSE 0
                         END
@@ -561,6 +657,7 @@ public sealed class TelemetryStore
             """;
         totalsCommand.Parameters.AddWithValue("$legacy", LegacyUploaderHash);
         totalsCommand.Parameters.AddWithValue("$authoritative", authoritativeUploaderHash);
+        totalsCommand.Parameters.AddWithValue("$linker", LinkerCatalogUploaderHash);
         totalsCommand.Parameters.AddWithValue("$minimumReporters", minimumReporters);
         totalsCommand.Parameters.AddWithValue(
             "$territory",
@@ -591,6 +688,7 @@ public sealed class TelemetryStore
             """;
         kindsCommand.Parameters.AddWithValue("$legacy", LegacyUploaderHash);
         kindsCommand.Parameters.AddWithValue("$authoritative", authoritativeUploaderHash);
+        kindsCommand.Parameters.AddWithValue("$linker", LinkerCatalogUploaderHash);
         kindsCommand.Parameters.AddWithValue("$minimumReporters", minimumReporters);
         kindsCommand.Parameters.AddWithValue(
             "$territory",
@@ -1093,6 +1191,7 @@ public sealed class TelemetryStore
             || !AllowedKinds.TryGetValue(source, out var allowedKinds)
             || !allowedKinds.Contains(kind)
             || !IsAllowedMap(source, marker.TerritoryId, marker.MapId)
+            || IsKnownInvalidMarker(source, kind, marker)
             || !double.IsFinite(marker.X)
             || !double.IsFinite(marker.Y)
             || !double.IsFinite(marker.Z)
@@ -1147,11 +1246,46 @@ public sealed class TelemetryStore
         return true;
     }
 
+    private static bool IsKnownInvalidMarker(
+        string source,
+        string kind,
+        TelemetryMarker marker
+    )
+    {
+        if (source != "tower-eventobj" || marker.TerritoryId != 1346)
+        {
+            return false;
+        }
+
+        // This is a lower central corridor alias from the neighboring sheet.
+        // It lands on parchment outside Map 1181 and must not be published.
+        if (kind == "SmallTrap"
+            && marker.MapId == 1181
+            && Math.Abs(marker.X - 561.0) <= 0.25
+            && Math.Abs(marker.Y - (-680.0)) <= 0.25
+            && Math.Abs(marker.Z - 832.5) <= 0.25)
+        {
+            return true;
+        }
+
+        // These Map 1182 corridor coordinates were uploaded under the neighboring
+        // middle camp sheet. Reject only the known aliases so future legitimate
+        // Map 1183 trap discoveries are still accepted.
+        return marker.MapId == 1183
+               && kind is "SmallTrap" or "BigTrap"
+               && Math.Abs(marker.Y - (-700.0)) <= 0.25
+               && InvalidMiddleCampTrapPositions.Any(position =>
+                   Math.Abs(marker.X - position.X) <= 0.25
+                   && Math.Abs(marker.Z - position.Z) <= 0.25
+               );
+    }
+
     private static bool IsAllowedMap(string source, uint territoryId, uint mapId)
     {
         return source switch
         {
             "dev-map" => (territoryId, mapId) is (1252, 967) or (1346, 1135),
+            "linker-catalog" => territoryId == 1346 && mapId is 1135 or 1244,
             "monster" => (territoryId, mapId) is (1252, 967) or (1346, 1135),
             "tower-eventobj" => territoryId switch
             {

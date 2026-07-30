@@ -11,6 +11,7 @@ using ECommons.DalamudServices;
 using ECommons.GameHelpers;
 using ECommons.Throttlers;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using Ocelot.Chain;
 using Ocelot.IPC;
 
 namespace BOCCHI.Modules.Automator;
@@ -18,6 +19,8 @@ namespace BOCCHI.Modules.Automator;
 public class FateActivity(EventData data, Lifestream lifestream, VNavmesh vnav, AutomatorModule module, Fate fate)
     : Activity(data, lifestream, vnav, module)
 {
+    private const float TankRangedOpenerRange = 20f;
+
     protected override TaskManagerTask GetPathfindingWatcher(StateManagerModule states)
     {
         var lastTargetPos = Vector3.Zero;
@@ -26,34 +29,32 @@ public class FateActivity(EventData data, Lifestream lifestream, VNavmesh vnav, 
         {
             if (EzThrottler.Throttle("FatePathfindingWatcher.EnemyScan", 100))
             {
-                if (Svc.Targets.Target == null)
+                var enemy = GetEnemies().Centroid();
+                if (enemy != null)
                 {
-                    var enemy = GetEnemies().Centroid();
-                    if (enemy != null)
+                    // Replace stale/self/other targets as soon as a targetable
+                    // enemy belonging to this FATE becomes available.
+                    Svc.Targets.Target = enemy;
+
+                    if (Vector3.Distance(enemy.Position, lastTargetPos) > 5f)
                     {
-                        Svc.Targets.Target = enemy;
+                        vnav.PathfindAndMoveTo(enemy.Position, false);
+                        lastTargetPos = enemy.Position;
                     }
-                }
-            }
 
-            var target = Svc.Targets.Target;
-            if (target != null)
-            {
-                if (Vector3.Distance(target.Position, lastTargetPos) > 5f)
-                {
-                    vnav.PathfindAndMoveTo(target.Position, false);
-                    lastTargetPos = target.Position;
-                }
-
-                if (states.GetState() == State.InFate)
-                {
-                    var distance = Vector3.Distance(Player.Position, target.Position) - target.HitboxRadius;
-                    if (distance <= module.Config.EngagementRange)
+                    // IsTargetable only means that the client permits selecting
+                    // the object; it can become true well outside combat range.
+                    var surfaceDistance =
+                        Vector3.Distance(Player.Position, enemy.Position)
+                        - enemy.HitboxRadius;
+                    if (surfaceDistance <= module.Config.EngagementRange)
                     {
+                        module.Debug(
+                            $"FATE target in engagement range: "
+                            + $"{enemy.Name.TextValue} ({surfaceDistance:F1})"
+                        );
                         Actions.TryUnmount();
-
                         vnav.Stop();
-
                         return true;
                     }
                 }
@@ -73,9 +74,36 @@ public class FateActivity(EventData data, Lifestream lifestream, VNavmesh vnav, 
         return module.GetModule<FatesModule>().fates[data.Id].Radius;
     }
 
+    protected override Func<Chain> GetArrivalChain()
+    {
+        return () => Chain.Create("Illegal:FateArrival")
+            .Then(_ =>
+            {
+                vnav.Stop();
+                Actions.TryUnmount();
+            })
+            .ConditionalWait(_ => Player.Mounted, 600)
+            .Then(_ => TryTankRangedOpenerOnArrival());
+    }
+
     public override bool IsValid()
     {
         return Svc.Fates.Any(f => f.FateId == fate.Id);
+    }
+
+    public override bool IsEnabled()
+    {
+        return module.Config.ShouldDoFates
+               && module.Config.IsFateEnabled(
+                   Svc.ClientState.TerritoryType,
+                   fate.Id
+               );
+    }
+
+    protected override bool IsParticipationComplete()
+    {
+        return module.Config.ReturnToNorthernStandby
+               && fate.CurrentProgress >= 100;
     }
 
     protected override Vector3 GetPosition()
@@ -106,5 +134,73 @@ public class FateActivity(EventData data, Lifestream lifestream, VNavmesh vnav, 
     protected override ActivityState GetPostPathfindingState()
     {
         return ActivityState.Participating;
+    }
+
+    private void TryTankRangedOpenerOnArrival()
+    {
+        var player = Svc.Objects.LocalPlayer;
+        if (player == null)
+        {
+            return;
+        }
+
+        var opener = GetTankRangedOpener(player.ClassJob.RowId);
+        if (opener == null)
+        {
+            return;
+        }
+
+        var enemy = Svc.Targets.Target as IBattleNpc;
+        if (enemy == null
+            || !enemy.IsTargetable
+            || !IsActivityTarget(enemy))
+        {
+            enemy = GetEnemies().Closest();
+        }
+
+        if (enemy == null || !enemy.IsTargetable)
+        {
+            module.Debug(
+                "FATE tank ranged opener skipped: no targetable FATE enemy"
+            );
+            return;
+        }
+
+        var surfaceDistance =
+            Vector3.Distance(Player.Position, enemy.Position)
+            - enemy.HitboxRadius;
+        var (action, actionName) = opener.Value;
+        if (surfaceDistance > TankRangedOpenerRange
+            || !action.CanCast())
+        {
+            module.Debug(
+                $"FATE tank ranged opener unavailable: {actionName}, "
+                + $"distance={surfaceDistance:F1}"
+            );
+            return;
+        }
+
+        Svc.Targets.Target = enemy;
+        action.Cast();
+        module.Debug(
+            $"FATE tank ranged opener: {actionName} -> "
+            + $"{enemy.Name.TextValue} "
+            + $"({surfaceDistance:F1})"
+        );
+    }
+
+    private static (
+        BOCCHI.ActionHelpers.Action Action,
+        string Name
+    )? GetTankRangedOpener(uint classJobId)
+    {
+        return classJobId switch
+        {
+            1 or 19 => (Actions.Tank.ShieldLob, "投盾"),
+            3 or 21 => (Actions.Tank.Tomahawk, "飞斧"),
+            32 => (Actions.Tank.Unmend, "伤残"),
+            37 => (Actions.Tank.LightningShot, "闪雷弹"),
+            _ => null,
+        };
     }
 }

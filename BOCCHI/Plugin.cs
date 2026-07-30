@@ -87,6 +87,14 @@ public sealed class Plugin : OcelotPlugin
             configChanged = true;
         }
 
+        if (Config.Version < 8)
+        {
+            Config.DevMapVisibleMarkers |=
+                global::BOCCHI.Modules.DevMap.DevMapMarkerVisibility.RerollChest;
+            Config.Version = 8;
+            configChanged = true;
+        }
+
         if (configChanged)
         {
             plugin.SavePluginConfig(Config);

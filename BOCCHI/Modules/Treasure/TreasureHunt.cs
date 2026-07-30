@@ -79,8 +79,12 @@ public class TreasureHunt(TreasureModule module) : Hunter(module)
 
     protected override Func<Chain> GetInteractionChain(IGameObject obj)
     {
+        var targetPosition = obj.Position;
         return () => Chain.Create()
-            .BreakIf(() => !GetValidObjects().Any(o => Vector3.Distance(o.Position, obj.Position) <= DISTANCE_TO_NODE_TO_USE))
+            .BreakIf(() => !GetValidObjects().Any(o =>
+                Vector3.Distance(o.Position, targetPosition)
+                <= DISTANCE_TO_NODE_TO_USE
+            ))
             .Then(new TaskManagerTask(() =>
             {
                 if (!EzThrottler.Throttle("ChestInteract", 250))
@@ -88,15 +92,30 @@ public class TreasureHunt(TreasureModule module) : Hunter(module)
                     return false;
                 }
 
-                if (Player.DistanceTo(obj) > DISTANCE_TO_NODE_TO_USE)
+                var liveObject = GetValidObjects().FirstOrDefault(candidate =>
+                    Vector3.Distance(candidate.Position, targetPosition)
+                    <= DISTANCE_TO_NODE_TO_USE
+                );
+                if (liveObject == null)
+                {
+                    return true;
+                }
+
+                if (Player.DistanceTo(liveObject) > DISTANCE_TO_NODE_TO_USE)
                 {
                     return true;
                 }
 
                 unsafe
                 {
-                    Svc.Targets.Target = obj;
-                    var gameObject = (GameObject*)(void*)obj.Address;
+                    Svc.Targets.Target = liveObject;
+                    var gameObject =
+                        (GameObject*)(void*)liveObject.Address;
+                    if (gameObject == null)
+                    {
+                        return true;
+                    }
+
                     var instance = (FFXIVClientStructs.FFXIV.Client.Game.Object.Treasure*)gameObject;
                     TargetSystem.Instance()->InteractWithObject(gameObject);
                     return instance->Flags.HasFlag(FFXIVClientStructs.FFXIV.Client.Game.Object.Treasure.TreasureFlags.Opened);

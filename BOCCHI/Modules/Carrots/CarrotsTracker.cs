@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using BOCCHI.Data;
 using BOCCHI.Enums;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Plugin.Services;
@@ -14,12 +15,18 @@ public class CarrotsTracker
 
     public void Tick(IFramework _)
     {
+        if (!WorldObjectScanGuard.IsSafe())
+        {
+            carrots = [];
+            return;
+        }
+
         carrots = Svc.Objects
             .Where(o => o.ObjectKind == ObjectKind.EventObj)
             .Where(o => o.BaseId == (uint)OccultObjectType.Carrot)
             .OrderBy(Player.DistanceTo)
-            .Select(o => new Carrot(o))
-            .Where(c => c.IsValid())
+            .Where(o => o is { IsDead: false } && o.IsValid())
+            .Select(o => new Carrot(o.Position))
             .ToList();
     }
 }

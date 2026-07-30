@@ -5,7 +5,6 @@ using BOCCHI.ActionHelpers;
 using BOCCHI.Chains;
 using BOCCHI.Data;
 using BOCCHI.Enums;
-using Dalamud.Game.ClientState.Conditions;
 using ECommons.Automation.NeoTaskManager;
 using ECommons.DalamudServices;
 using ECommons.GameHelpers;
@@ -27,6 +26,9 @@ public sealed class NorthernRouteNavigationChain(
     protected override Chain Create(Chain chain)
     {
         Task<NorthernNavigationPlan>? planTask = null;
+        var wasMountedBeforeReturn = false;
+        var alreadyReturnedToSource = planner.ConsumeReturnedToSource();
+        NorthernReturnState? returnState = null;
         var plan = NorthernNavigationPlan.Direct(float.PositiveInfinity, "尚未计算");
 
         return chain
@@ -65,6 +67,10 @@ public sealed class NorthernRouteNavigationChain(
             ))
             .ConditionalThen(
                 _ => plan is { UseTeleport: true, SourceRoute: not null }
+                     && !alreadyReturnedToSource
+                     && !planner.IsNearSourceCrystal(
+                         Svc.ClientState.TerritoryType
+                     )
                      && Player.DistanceTo(
                          NorthernRouteStore.GetInteractionPosition(
                              plan.SourceRoute
@@ -77,13 +83,39 @@ public sealed class NorthernRouteNavigationChain(
                         DebugLog.Debug(
                             "Northern navigation: 当前不在出生魔路附近，先使用返回"
                         );
+                        wasMountedBeforeReturn = Player.Mounted;
                         Actions.TryUnmount();
                     })
-                    .Wait(500)
-                    .Then(_ => Actions.Return.CanCast())
-                    .Then(_ => Actions.Return.Cast())
-                    .WaitToCast()
-                    .WaitToCycleCondition(ConditionFlag.BetweenAreas)
+                    .ConditionalWait(_ => wasMountedBeforeReturn, 500)
+                    .Then(_ =>
+                        returnState = new NorthernReturnState(planner)
+                    )
+                    .Then(new TaskManagerTask(
+                        () => returnState?.Update() == true,
+                        new TaskManagerConfiguration
+                        {
+                            TimeLimitMS = 45000,
+                            ShowError = false,
+                        }
+                    ))
+            )
+            .ConditionalThen(
+                _ => alreadyReturnedToSource,
+                _ => DebugLog.Debug(
+                    "Northern navigation: event completion Return already "
+                    + "reached the source; skipping duplicate Return"
+                )
+            )
+            .ConditionalThen(
+                _ => plan is { UseTeleport: true, SourceRoute: not null }
+                     && !alreadyReturnedToSource
+                     && planner.IsNearSourceCrystal(
+                         Svc.ClientState.TerritoryType
+                     ),
+                _ => DebugLog.Debug(
+                    "Northern navigation: source crystal is nearby; "
+                    + "skipping Return"
+                )
             )
             .ConditionalThen(
                 _ => plan is { UseTeleport: true, SourceRoute: not null },

@@ -33,6 +33,10 @@
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <Link>Data\%(RecursiveDir)%(Filename)%(Extension)</Link>
         </None>
+        <None Include="..\TelemetryServer\wwwroot\maps\linker-markers.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <Link>Data\NorthHorn\linker_markers.json</Link>
+        </None>
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <ProjectReference Include="../Ocelot/Ocelot/Ocelot.csproj"/>

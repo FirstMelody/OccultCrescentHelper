@@ -207,6 +207,19 @@
       "Image": "1346-1191.webp",
       "Width": 2048,
       "Height": 2048
+    },
+    {
+      "TerritoryId": 1346,
+      "MapId": 1244,
+      "MapResourceId": "o6b2/17",
+      "PlaceName": "\u5730\u4E0B\u5C42",
+      "ContentName": "\u8703\u666F\u5E7B\u754C\u65B0\u6708\u5C9B \u5317\u5F81\u4E4B\u7AE0",
+      "SizeFactor": 100,
+      "OffsetX": 0,
+      "OffsetY": 0,
+      "Image": "1346-1244.webp",
+      "Width": 2048,
+      "Height": 2048
     }
   ]
 }

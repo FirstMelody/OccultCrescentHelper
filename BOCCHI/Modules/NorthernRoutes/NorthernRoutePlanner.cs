@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BOCCHI.Enums;
 using BOCCHI.Modules.Automator;
+using ECommons.DalamudServices;
 using Ocelot.IPC;
 
 namespace BOCCHI.Modules.NorthernRoutes;
@@ -29,10 +30,14 @@ public sealed record NorthernNavigationPlan(
 public sealed class NorthernRoutePlanner
 {
     private static readonly TimeSpan PathfindTimeout = TimeSpan.FromSeconds(15);
+    private const float SourceCrystalPositionTolerance = 15f;
 
     private readonly NorthernRouteStore store;
     private readonly AutomatorConfig config;
     private readonly VNavmesh vnav;
+    private int skipNextSourceReturn;
+    private int returnCancellationGeneration;
+    private int returnInProgress;
     private readonly ConcurrentDictionary<
         CacheKey,
         Lazy<Task<NorthernNavigationPlan>>
@@ -47,6 +52,75 @@ public sealed class NorthernRoutePlanner
         this.store = store;
         this.config = config;
         this.vnav = vnav;
+    }
+
+    public void MarkReturnedToSource()
+    {
+        Interlocked.Exchange(ref skipNextSourceReturn, 1);
+    }
+
+    public bool ConsumeReturnedToSource()
+    {
+        return Interlocked.Exchange(ref skipNextSourceReturn, 0) == 1;
+    }
+
+    public bool IsReturnInProgress
+    {
+        get => Volatile.Read(ref returnInProgress) == 1;
+    }
+
+    public int BeginReturn()
+    {
+        Interlocked.Exchange(ref returnInProgress, 1);
+        return Volatile.Read(ref returnCancellationGeneration);
+    }
+
+    public bool IsReturnCanceled(int generation)
+    {
+        return generation != Volatile.Read(
+            ref returnCancellationGeneration
+        );
+    }
+
+    public void EndReturn()
+    {
+        Interlocked.Exchange(ref returnInProgress, 0);
+    }
+
+    public void CancelActiveReturn()
+    {
+        Interlocked.Increment(ref returnCancellationGeneration);
+        Interlocked.Exchange(ref returnInProgress, 0);
+    }
+
+    public bool IsNearSourceCrystal(uint territoryId, float range = 35f)
+    {
+        var player = Svc.Objects.LocalPlayer;
+        if (player == null)
+        {
+            return false;
+        }
+
+        foreach (var source in NorthernRouteDefaults.SourceOnlyRoutes.Where(
+                     route => route.TerritoryId == territoryId
+                              && route.BaseId != 0
+                 ))
+        {
+            var expectedPosition =
+                NorthernRouteStore.GetInteractionPosition(source);
+            var sourceObject = Svc.Objects.FirstOrDefault(obj =>
+                obj.BaseId == source.BaseId
+                && Vector3.Distance(obj.Position, expectedPosition)
+                <= SourceCrystalPositionTolerance
+            );
+            if (sourceObject != null
+                && sourceObject.CurrentDistance <= range)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public async Task<NorthernNavigationPlan> PlanAsync(
@@ -94,7 +168,7 @@ public sealed class NorthernRoutePlanner
         {
             return NorthernNavigationPlan.Direct(
                 float.PositiveInfinity,
-                "北岛魔路选路已关闭"
+                "北征魔路选路已关闭"
             );
         }
 
@@ -107,7 +181,10 @@ public sealed class NorthernRoutePlanner
                 && !string.IsNullOrWhiteSpace(route.Name)
             )
             .OrderBy(route =>
-                Vector3.Distance(NorthernRouteStore.GetArrivalPosition(route), destination)
+                Vector3.Distance(
+                    NorthernRouteStore.GetArrivalPosition(route),
+                    destination
+                )
             )
             .Take(3)
             .ToList();
@@ -135,14 +212,29 @@ public sealed class NorthernRoutePlanner
         await Task.WhenAll(destinationTasks.Values.Append(directTask));
 
         var directCost = await directTask;
-        var bestDestination = destinations
+        var candidateCosts = destinations
             .Select(route => (Route: route, Cost: destinationTasks[route.Id].Result))
+            .ToList();
+        DebugLog.Debug(
+            $"Northern route destination costs for {destination}: "
+            + string.Join(
+                " | ",
+                candidateCosts.Select(candidate =>
+                    $"{candidate.Route.Name}={candidate.Cost:F0}"
+                )
+            )
+        );
+
+        var bestDestination = candidateCosts
             .Where(candidate => float.IsFinite(candidate.Cost))
             .OrderBy(candidate => candidate.Cost)
             .FirstOrDefault();
         if (bestDestination.Route == null)
         {
-            return NorthernNavigationPlan.Direct(directCost, "无法从任何魔路到达坐标寻路到目标");
+            return NorthernNavigationPlan.Direct(
+                directCost,
+                "无法从任何魔路到达坐标寻路到目标"
+            );
         }
 
         var teleportCost = Math.Max(0f, config.NorthernTeleportPenalty)
@@ -162,7 +254,8 @@ public sealed class NorthernRoutePlanner
             bestDestination.Route,
             directCost,
             teleportCost,
-            $"魔路更短：直走 {directCost:F0} / 魔路 {teleportCost:F0}"
+            $"魔路更短（{bestDestination.Route.Name}）："
+            + $"直走 {directCost:F0} / 魔路 {teleportCost:F0}"
         );
     }
 

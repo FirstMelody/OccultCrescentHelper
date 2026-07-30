@@ -32,8 +32,6 @@ public class Fate
                 Id = Id,
                 Type = EventType.Fate,
                 InternalName = fate.Name.GetText(),
-                StartPosition = fate.Position,
-                Radius = fate.Radius,
             };
         }
 

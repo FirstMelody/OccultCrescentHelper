@@ -34,53 +34,60 @@ public class TreasureTracker : IDisposable
 
     public void Tick(Plugin plugin)
     {
-        var treasures = Svc.Objects
-            .Where(o => o is { ObjectKind: ObjectKind.Treasure })
-            .ToDictionary(o => o.GameObjectId, o => o);
-
-        var knownIds = Treasures.Select(t => t.Id).ToHashSet();
-
-        // Removed
-        for (var i = Treasures.Count - 1; i >= 0; i--)
+        if (!WorldObjectScanGuard.IsSafe())
         {
-            var treasure = Treasures[i];
-            if (!treasures.ContainsKey(treasure.Id) || !treasure.IsValid())
-            {
-                Treasures.RemoveAt(i);
-            }
+            Treasures = [];
+            return;
         }
 
-        // Added
-        foreach (var (objectId, obj) in treasures)
+        var known = Treasures.ToDictionary(treasure => treasure.Id);
+        var seen = new HashSet<ulong>();
+        foreach (var obj in Svc.Objects)
         {
-            if (knownIds.Contains(objectId))
+            if (obj.Address == nint.Zero
+                || obj.ObjectKind != ObjectKind.Treasure)
             {
                 continue;
             }
 
-            var treasure = new Treasure(obj);
-            if (treasure.IsValid())
+            // GameObjectId dereferences native object memory and was the exact
+            // source of the zone-entry crash. The object-table address is
+            // sufficient as an identity for this short-lived live snapshot.
+            var id = (ulong)(nuint)obj.Address;
+            seen.Add(id);
+            if (!known.TryGetValue(id, out var treasure))
             {
-                Treasures.Add(treasure);
+                treasure = new Treasure(obj);
+                if (treasure.IsValid())
+                {
+                    Treasures.Add(treasure);
+                    known[id] = treasure;
+                }
+
+                continue;
+            }
+
+            if (!treasure.Update(obj))
+            {
+                continue;
+            }
+
+            if (treasure.GetTreasureType() == TreasureType.Bronze)
+            {
+                BronzeChests = Math.Max(0, BronzeChests - 1);
+            }
+            else if (treasure.GetTreasureType() == TreasureType.Silver)
+            {
+                SilverChests = Math.Max(0, SilverChests - 1);
             }
         }
 
-        Treasures = Treasures.OrderBy(t => Player.DistanceTo(t.GetPosition())).ToList();
-
-        foreach (var treasure in Treasures)
-        {
-            if (treasure.CheckOpened())
-            {
-                if (treasure.GetTreasureType() == TreasureType.Bronze)
-                {
-                    BronzeChests = Math.Max(0, BronzeChests - 1);
-                }
-                else if (treasure.GetTreasureType() == TreasureType.Silver)
-                {
-                    SilverChests = Math.Max(0, SilverChests - 1);
-                }
-            }
-        }
+        Treasures.RemoveAll(treasure =>
+            !seen.Contains(treasure.Id) || !treasure.IsValid()
+        );
+        Treasures = Treasures
+            .OrderBy(treasure => Player.DistanceTo(treasure.GetPosition()))
+            .ToList();
     }
 
     private unsafe void OnWideTextPostDraw(AddonEvent type, AddonArgs args)
@@ -91,7 +98,7 @@ public class TreasureTracker : IDisposable
         }
 
         var addon = (AtkUnitBase*)args.Addon.Address;
-        if (!addon->IsVisible)
+        if (addon == null || !addon->IsVisible)
         {
             return;
         }
@@ -105,7 +112,14 @@ public class TreasureTracker : IDisposable
         LastParseWideText = DateTime.Now;
 
         var pattern = LogMessageHelper.GetLogMessagePattern(10965);
-        var text = addon->GetNodeById(3)->GetAsAtkTextNode()->NodeText.ToString();
+        var node = addon->GetNodeById(3);
+        var textNode = node == null ? null : node->GetAsAtkTextNode();
+        if (textNode == null)
+        {
+            return;
+        }
+
+        var text = textNode->NodeText.ToString();
         var match = Regex.Match(text, pattern);
 
         if (!match.Success)

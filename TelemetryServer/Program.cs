@@ -51,6 +51,13 @@ var store = new TelemetryStore(
     authoritativeUploaderHash
 );
 await store.InitializeAsync();
+var linkerCatalogPath = Path.Combine(
+    AppContext.BaseDirectory,
+    "wwwroot",
+    "maps",
+    "linker-markers.json"
+);
+await store.SyncTrustedCatalogAsync(LinkerMarkerCatalog.Load(linkerCatalogPath));
 
 if (args.Length > 0 && string.Equals(args[0], "admin", StringComparison.OrdinalIgnoreCase))
 {

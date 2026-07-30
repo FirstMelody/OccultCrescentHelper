@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Numerics;
 using BOCCHI.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
@@ -9,17 +8,30 @@ using TreasureFlags = FFXIVClientStructs.FFXIV.Client.Game.Object.Treasure.Treas
 
 namespace BOCCHI.Modules.Treasure;
 
-public class Treasure(IGameObject obj)
+public class Treasure
 {
-    public ulong Id
-    {
-        get => obj.GameObjectId;
-    }
+    public ulong Id { get; private set; }
+
+    private uint baseId;
+    private Vector3 position;
+    private string objectName = "";
+    private bool valid;
 
     private TreasureFlags LastFlags = TreasureFlags.None;
 
-    public unsafe bool CheckOpened()
+    public Treasure(IGameObject obj)
     {
+        Update(obj);
+    }
+
+    public unsafe bool Update(IGameObject obj)
+    {
+        Id = (ulong)(nuint)obj.Address;
+        baseId = obj.BaseId;
+        position = obj.Position;
+        objectName = obj.Name.TextValue.Trim();
+        valid = obj is { IsDead: false, IsTargetable: true };
+
         var gameObject = (GameObject*)(void*)obj.Address;
         if (gameObject == null)
         {
@@ -48,27 +60,27 @@ public class Treasure(IGameObject obj)
 
     private XIVTreasure? GetData()
     {
-        return Svc.Data.GetExcelSheet<XIVTreasure>().ToList().FirstOrDefault(t => t.RowId == obj.BaseId);
+        return Svc.Data.GetExcelSheet<XIVTreasure>().GetRowOrDefault(baseId);
     }
 
     public bool IsValid()
     {
-        return obj.IsValid() && obj is { IsDead: false, IsTargetable: true };
+        return valid;
     }
 
     public Vector3 GetPosition()
     {
-        return obj.Position;
+        return position;
     }
 
     public uint GetBaseId()
     {
-        return obj.BaseId;
+        return baseId;
     }
 
     public string GetObjectName()
     {
-        return obj.Name.TextValue.Trim();
+        return objectName;
     }
 
     private uint? GetModelId()

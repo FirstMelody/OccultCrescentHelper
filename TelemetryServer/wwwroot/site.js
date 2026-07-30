@@ -1,6 +1,7 @@
 const state = {
   markers: [],
   trapCandidates: [],
+  trapGroups: [],
   colors: new Map(),
   points: [],
   maps: [],
@@ -9,6 +10,7 @@ const state = {
   mapSamplers: new Map(),
   markerIcons: new Map(),
   hiddenKinds: new Set(),
+  showTrapRanges: true,
   viewport: {
     zoom: 1,
     panX: 0,
@@ -24,6 +26,7 @@ const kindIconIds = {
   BronzeChest: 60356,
   SilverChest: 60355,
   PotChest: 60354,
+  RerollChest: 61473,
   UnknownChest: 60354,
   FortuneCarrotChest: 60354,
   FortuneCarrot: 25207,
@@ -74,7 +77,8 @@ function kindVisual(kind) {
     return `<img class="kind-icon" src="./icons/${iconId}.webp" alt="">`;
   }
   if (isTrapKind(kind)) {
-    return `<span class="trap-icon" aria-hidden="true"></span>`;
+    const trapClass = kind === "SmallTrap" ? " small-trap" : " big-trap";
+    return `<span class="trap-icon${trapClass}" aria-hidden="true"></span>`;
   }
   return `<span class="swatch" style="background:${colorFor(kind)}"></span>`;
 }
@@ -117,6 +121,24 @@ function normalizeTrapCandidate(raw) {
   };
 }
 
+function normalizeTrapGroup(raw) {
+  return {
+    id: raw.id,
+    name: raw.name ?? raw.id,
+    territoryId: raw.territoryId,
+    mapId: raw.mapId,
+    mapIds: raw.mapIds ?? [raw.mapId],
+    kind: raw.kind,
+    kinds: raw.kinds ?? (raw.kind ? [raw.kind] : []),
+    maxActive: Math.max(1, raw.maxActive ?? 1),
+    crossMap: raw.crossMap ?? false,
+    showCandidates: raw.showCandidates ?? true,
+    displayMode: raw.displayMode ?? "",
+    ruleText: raw.ruleText ?? "",
+    positions: raw.positions ?? [],
+  };
+}
+
 async function loadCatalog() {
   const [catalog, candidates] = await Promise.all([
     getJson("./maps/catalog.json"),
@@ -124,6 +146,7 @@ async function loadCatalog() {
   ]);
   state.maps = (catalog.maps ?? []).map(normalizeMap);
   state.trapCandidates = (candidates.candidates ?? []).map(normalizeTrapCandidate);
+  state.trapGroups = (candidates.groups ?? []).map(normalizeTrapGroup);
   const picker = $("mapSelect");
   picker.innerHTML = state.maps.map(map =>
     `<option value="${map.territoryId}:${map.mapId}">${esc(map.contentName)} · ${esc(map.placeName)}</option>`
@@ -134,10 +157,45 @@ async function loadCatalog() {
 }
 
 function trapCandidatesForMap(map) {
-  const candidates = state.trapCandidates.filter(candidate =>
+  const explicitCandidates = state.trapCandidates.filter(candidate =>
     candidate.territoryId === map.territoryId
     && candidate.mapId === map.mapId
   );
+  const groupCandidates = state.trapGroups.flatMap(group =>
+    group.showCandidates && group.territoryId === map.territoryId
+      ? group.positions
+        .filter(position => (position.mapId ?? group.mapId) === map.mapId)
+        .flatMap(position => (position.kinds ?? group.kinds).map(kind =>
+          normalizeTrapCandidate({
+            territoryId: group.territoryId,
+            mapId: map.mapId,
+            kind,
+            baseId: kind === "BigTrap" ? 2014585 : 2014584,
+            x: position.x,
+            y: position.y,
+            z: position.z,
+            mechanicRadius: kind === "BigTrap" ? 30 : 7,
+            status: "inferred",
+            group: group.id,
+            note: `${group.name}候选点`,
+          })
+        ))
+      : []
+  );
+  const candidates = [];
+  for (const candidate of [...explicitCandidates, ...groupCandidates]) {
+    if (!candidates.some(existing =>
+      existing.kind === candidate.kind
+      && existing.mapId === candidate.mapId
+      && Math.hypot(
+        existing.x - candidate.x,
+        existing.y - candidate.y,
+        existing.z - candidate.z
+      ) <= .1
+    )) {
+      candidates.push(candidate);
+    }
+  }
   return candidates.filter(candidate =>
     !state.markers.some(marker =>
       marker.kind === candidate.kind
@@ -150,6 +208,49 @@ function trapCandidatesForMap(map) {
       ) <= .75
     )
   );
+}
+
+function trapGroupForMarker(marker) {
+  if (!isTrapKind(marker.kind)) return null;
+  return state.trapGroups.find(group =>
+    group.territoryId === marker.territoryId
+    && group.mapIds.includes(marker.mapId)
+    && group.kinds.includes(marker.kind)
+    && group.positions.some(position =>
+      (position.mapId ?? group.mapId) === marker.mapId
+      && Math.hypot(
+          marker.x - position.x,
+          marker.y - position.y,
+          marker.z - position.z
+        ) <= .75
+    )
+  ) ?? null;
+}
+
+function collapseTrapVariantMarkers(markers) {
+  const collapsed = [];
+  for (const marker of markers) {
+    if (marker.trapGroup?.displayMode !== "small-big-swap") {
+      collapsed.push(marker);
+      continue;
+    }
+    const existing = collapsed.find(item =>
+      item.trapGroup?.id === marker.trapGroup.id
+      && Math.hypot(
+        item.x - marker.x,
+        item.y - marker.y,
+        item.z - marker.z
+      ) <= .1
+    );
+    if (existing) {
+      if (!existing.trapVariantKinds.includes(marker.kind)) {
+        existing.trapVariantKinds.push(marker.kind);
+      }
+    } else {
+      collapsed.push({ ...marker, trapVariantKinds: [marker.kind] });
+    }
+  }
+  return collapsed;
 }
 
 function selectCurrentMap() {
@@ -469,11 +570,15 @@ async function drawMap() {
   ctx.fillStyle = "#07101a12";
   ctx.fillRect(0, 0, width, height);
 
-  const drawableMarkers = [...state.markers, ...trapCandidatesForMap(map)].filter(marker =>
-    isDrawableMarker(marker)
-    && !(marker.kind === "Monster" && marker.level === 1)
-    && !state.hiddenKinds.has(marker.kind)
-    && isLikelyOnTowerPath(marker, map, image)
+  const drawableMarkers = collapseTrapVariantMarkers(
+    [...state.markers, ...trapCandidatesForMap(map)]
+      .map(marker => ({ ...marker, trapGroup: trapGroupForMarker(marker) }))
+      .filter(marker =>
+        isDrawableMarker(marker)
+        && !(marker.kind === "Monster" && marker.level === 1)
+        && !state.hiddenKinds.has(marker.kind)
+        && isLikelyOnTowerPath(marker, map, image)
+      )
   );
   const iconIds = [
     ...new Set(
@@ -489,25 +594,49 @@ async function drawMap() {
   state.points = drawableMarkers.filter(marker => marker.kind !== "Monster").map(marker => {
     const point = viewportPoint(markerToPixel(marker, map, width, height), width, height);
     if (isTrapKind(marker.kind)) {
-      const mechanicRadius = marker.mechanicRadius > 0
-        ? marker.mechanicRadius
-        : marker.kind === "BigTrap" ? 30 : 7;
-      const radius = mechanicRadius * (map.sizeFactor / 100) / 2048
-        * width * state.viewport.zoom;
-      ctx.fillStyle = "#ff303028";
-      ctx.strokeStyle = "#ff3030e8";
+      const trapKinds = marker.trapVariantKinds ?? [marker.kind];
+      const hasSmallTrap = trapKinds.includes("SmallTrap");
+      const hasBigTrap = trapKinds.includes("BigTrap");
+      if (state.showTrapRanges) {
+        for (const kind of ["BigTrap", "SmallTrap"].filter(kind => trapKinds.includes(kind))) {
+          const mechanicRadius = kind === "BigTrap" ? 30 : 7;
+          const radius = mechanicRadius * (map.sizeFactor / 100) / 2048
+            * width * state.viewport.zoom;
+          ctx.fillStyle = kind === "SmallTrap" ? "#ffd43b20" : "#ff303028";
+          ctx.strokeStyle = kind === "SmallTrap" ? "#ffc400e8" : "#ff3030e8";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, Math.max(3, radius), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, Math.max(3, radius), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = "#ff3030";
-      ctx.strokeStyle = "#4a0000";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      if (hasSmallTrap && hasBigTrap) {
+        ctx.fillStyle = "#ffd43b";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, Math.PI / 2, Math.PI * 1.5);
+        ctx.lineTo(point.x, point.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ff3030";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, -Math.PI / 2, Math.PI / 2);
+        ctx.lineTo(point.x, point.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#4a0000";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = hasSmallTrap ? "#ffd43b" : "#ff3030";
+        ctx.strokeStyle = hasSmallTrap ? "#5c4300" : "#4a0000";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
     } else if (marker.kind === "Monster") {
       const label = `${marker.level ?? "?"} ${marker.name || "怪物"}`;
       const fontSize = Math.max(9, Math.min(13, width / 75));
@@ -648,15 +777,24 @@ $("plot").addEventListener("mousemove", event => {
     tip.hidden = false;
     return;
   }
+  const displayKind = marker.trapVariantKinds?.length > 1
+    ? "SmallTrap / BigTrap"
+    : marker.kind;
   const level = marker.level ? ` · 等级 ${marker.level}` : "";
   const candidateLabel = marker.candidateStatus === "inferred" ? " · 推算候选" : "";
   const candidateDetails = marker.candidateStatus === "inferred"
     ? `<br>${esc(marker.candidateNote || "由同组点位间距推算，尚无实测刷出记录")}`
     : "";
+  const trapGroupDetails = marker.trapGroup
+    ? `<br>${esc(marker.trapGroup.name)} · ${esc(
+        marker.trapGroup.ruleText
+        || `每次有且仅有 ${marker.trapGroup.maxActive} 个生成`
+      )}`
+    : "";
   const provisional = marker.kind === "Monster" && marker.reportCount < 2
     ? " · 单来源暂定"
     : "";
-  tip.innerHTML = `<strong>${esc(marker.kind)}${level}${provisional}${candidateLabel}</strong>${candidateDetails}<br>${esc(marker.name || "")}<br>
+  tip.innerHTML = `<strong>${esc(displayKind)}${level}${provisional}${candidateLabel}</strong>${candidateDetails}${trapGroupDetails}<br>${esc(marker.name || "")}<br>
     T${marker.territoryId} / M${marker.mapId}<br>X ${marker.x.toFixed(2)} · Y ${marker.y.toFixed(2)} · Z ${marker.z.toFixed(2)}`;
   tip.style.left = `${Math.min(x + 18, rect.width - 290)}px`;
   tip.style.top = `${Math.max(8, y - 22)}px`;
@@ -711,6 +849,10 @@ $("zoomOut").addEventListener("click", () => {
 });
 $("zoomReset").addEventListener("click", () => {
   resetViewport();
+  drawMap();
+});
+$("showTrapRanges").addEventListener("change", event => {
+  state.showTrapRanges = event.currentTarget.checked;
   drawMap();
 });
 $("mapSelect").addEventListener("change", refresh);

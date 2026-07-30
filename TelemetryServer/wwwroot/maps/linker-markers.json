@@ -1,0 +1,1566 @@
+{
+  "schemaVersion": 1,
+  "source": "linker-catalog",
+  "sourceRepository": "https://github.com/Infiziert90/EurekaTrackerAutoPopper",
+  "sourceCommit": "0da9ff6ce19e64ac91768f81c344f18f3572c15c",
+  "importedAtUtc": "2026-07-30T13:06:21.844Z",
+  "markers": [
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 383.3138,
+      "y": 33,
+      "z": -175.6476,
+      "set": "Treasure"
+    },
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -2.305847,
+      "y": 66.69136,
+      "z": -814.9053,
+      "set": "Treasure"
+    },
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -22.66858,
+      "y": 42.08691,
+      "z": 628.9946,
+      "set": "Treasure"
+    },
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -633.6964,
+      "y": 82.71846,
+      "z": -146.0046,
+      "set": "Treasure"
+    },
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 634.7919,
+      "y": 60.51484,
+      "z": -831.787,
+      "set": "Treasure"
+    },
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -645.4403,
+      "y": 160.0992,
+      "z": 967.9435,
+      "set": "Treasure"
+    },
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -815.8082,
+      "y": -21.83485,
+      "z": -699.3701,
+      "set": "Treasure"
+    },
+    {
+      "kind": "SilverChest",
+      "territoryId": 1346,
+      "mapId": 1244,
+      "x": 223.6532,
+      "y": -161.8637,
+      "z": -30.64362,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 676.9965,
+      "y": 190.9779,
+      "z": 957.4468,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 812.0001,
+      "y": 192,
+      "z": 669,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 673.7398,
+      "y": 161.1653,
+      "z": 729.666,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 758.147,
+      "y": 130,
+      "z": 506.8132,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 246.2266,
+      "y": 66.54174,
+      "z": 676.6658,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 719.3481,
+      "y": 69.65454,
+      "z": 268.3043,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 449.408,
+      "y": 0.1465552,
+      "z": 105.2345,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 649.5436,
+      "y": 46.24511,
+      "z": -157.7742,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 478.4506,
+      "y": 12.4224,
+      "z": -202.9711,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 254.7441,
+      "y": 36.93214,
+      "z": -605,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -26,
+      "y": 0.2318999,
+      "z": -437.6877,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -265.7608,
+      "y": 30.17087,
+      "z": -439.5194,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -232.4192,
+      "y": 53.23654,
+      "z": -719.9717,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 147.8688,
+      "y": 61,
+      "z": -868.7524,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 658.8088,
+      "y": 66.1263,
+      "z": -364.6757,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 950.2007,
+      "y": 74.00013,
+      "z": -358.9755,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 658.7231,
+      "y": 60.52044,
+      "z": -552.306,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 389.5362,
+      "y": 60.68167,
+      "z": -733.0182,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 77.06985,
+      "y": 21.19984,
+      "z": 536.2695,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -12.09888,
+      "y": 66.65052,
+      "z": 773.8625,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -278.0559,
+      "y": 47.78407,
+      "z": 567.9728,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -436.4424,
+      "y": 0.2028036,
+      "z": 166.2191,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -256.9473,
+      "y": 100.6667,
+      "z": 812.1967,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -504.0914,
+      "y": 85.75282,
+      "z": 758.3212,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -612.2136,
+      "y": 66.98989,
+      "z": 578.548,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -775.8944,
+      "y": 70.7192,
+      "z": 377.1531,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -631.7785,
+      "y": 78.25452,
+      "z": 240,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -923.1418,
+      "y": 113.2651,
+      "z": 197.9475,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -590.2075,
+      "y": 87.97915,
+      "z": -7,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -878.9666,
+      "y": 13.13452,
+      "z": -314.2021,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -581.4894,
+      "y": 40.91439,
+      "z": -257.4107,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -254.1409,
+      "y": 1.820912,
+      "z": -266.3119,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -707.3763,
+      "y": 41.58638,
+      "z": -396.9889,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -697.2709,
+      "y": 34.89849,
+      "z": -565.0217,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -439.5511,
+      "y": 43.04438,
+      "z": -558.4492,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -525.7809,
+      "y": 46.85732,
+      "z": -783.4683,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 85.59845,
+      "y": 3.302996,
+      "z": -281.1396,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 43.7818,
+      "y": 2.454146,
+      "z": -108.1916,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -168.2038,
+      "y": 3.379924,
+      "z": -153.4577,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -162.0424,
+      "y": 3.589863,
+      "z": 98.44962,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 633.1317,
+      "y": 60.64236,
+      "z": -910.2271,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 639.049,
+      "y": 60.62531,
+      "z": -698.7261,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 815.4435,
+      "y": 60.5542,
+      "z": -657.3135,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 865.4569,
+      "y": 70.21528,
+      "z": -874.0874,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -592,
+      "y": 160.1012,
+      "z": 767.6685,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -699.8373,
+      "y": 160,
+      "z": 926.3793,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -857.7925,
+      "y": 159.85,
+      "z": 772.2366,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -800.3965,
+      "y": 157.8,
+      "z": 633.3867,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -857.5991,
+      "y": -12.23519,
+      "z": -609.8169,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -928.626,
+      "y": -11.22762,
+      "z": -744.9562,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -736.0236,
+      "y": 21.03466,
+      "z": -881.4858,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -416.7736,
+      "y": 45.93657,
+      "z": -945.4311,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1244,
+      "x": -144.7256,
+      "y": -129.7955,
+      "z": 304.9379,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1244,
+      "x": 41.2326,
+      "y": -140.7708,
+      "z": 168.5024,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1244,
+      "x": 161,
+      "y": -151.7595,
+      "z": 16.00002,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1244,
+      "x": 313.9192,
+      "y": -139.5295,
+      "z": 180.0712,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 447.8859,
+      "y": 62.90584,
+      "z": 463.3448,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 279.0932,
+      "y": 143,
+      "z": -356.1478,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1244,
+      "x": -287.7408,
+      "y": -92,
+      "z": 125.6662,
+      "set": "Treasure"
+    },
+    {
+      "kind": "BronzeChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 222.9122,
+      "y": 90.40005,
+      "z": 913.6289,
+      "set": "Treasure"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 927.0178,
+      "y": 54,
+      "z": -155.2175,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 929.4178,
+      "y": 54,
+      "z": -1.817501,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 939.2178,
+      "y": 80.269966,
+      "z": -273.1175,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 912.2978,
+      "y": 61.18964,
+      "z": -461.5099,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 385,
+      "y": 33,
+      "z": -177,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -536.1014,
+      "y": 87.01824,
+      "z": 149.8447,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 830.0979,
+      "y": 77.75924,
+      "z": -148.9099,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -530,
+      "y": 67.77658,
+      "z": -58,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -251.781,
+      "y": 65.949005,
+      "z": -864.3828,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 889.2178,
+      "y": 53.999996,
+      "z": 155.9825,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -596,
+      "y": 41.869873,
+      "z": -285,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -223.8233,
+      "y": 10.891144,
+      "z": -353.9438,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -190,
+      "y": 61.75258,
+      "z": -763,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -498.7,
+      "y": 11.051006,
+      "z": 128.9,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -86,
+      "y": 60.596237,
+      "z": -737,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 32.4,
+      "y": 56.835186,
+      "z": -777.3,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 948.5978,
+      "y": 63.594563,
+      "z": -567.0099,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -252.1626,
+      "y": 66.55432,
+      "z": -879.5855,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 546.56,
+      "y": 36.120197,
+      "z": 143.3104,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 321.198,
+      "y": 59.85,
+      "z": -889.8872,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 928.8978,
+      "y": 74.0003,
+      "z": -332.8099,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 593,
+      "y": 39.622505,
+      "z": 34,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 782.4979,
+      "y": 70.34123,
+      "z": -56.4099,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 810.8979,
+      "y": 78.39757,
+      "z": -278.8099,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 1.768392,
+      "y": 71.555756,
+      "z": -872.2798,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 440.298,
+      "y": 60.615795,
+      "z": -926.5872,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 452.6,
+      "y": 57.10005,
+      "z": -310.3,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 151.9998,
+      "y": 61.106945,
+      "z": -842.0175,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 714.698,
+      "y": 69.24771,
+      "z": 262.6901,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -455.989,
+      "y": 39.688915,
+      "z": -365.5418,
+      "set": "PotNorth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -113.4943,
+      "y": 5.0879984,
+      "z": -74.15943,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -960,
+      "y": 48,
+      "z": -425.8,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -834,
+      "y": 18.913685,
+      "z": -587.4,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -853.493,
+      "y": 58,
+      "z": -323.8983,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -586.3,
+      "y": 47.81013,
+      "z": -715.2,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 71.10001,
+      "y": 81.074875,
+      "z": 942.3,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 93.4,
+      "y": 3.7155468,
+      "z": -114.3,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 210,
+      "y": 98.400055,
+      "z": 916,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 28.10088,
+      "y": 3.9999995,
+      "z": -16.69861,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 0.9425046,
+      "y": 41.80327,
+      "z": 623.2599,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -628.4385,
+      "y": 49.07533,
+      "z": -449.5009,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 11.98766,
+      "y": 68.15505,
+      "z": 795.707,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -339.8588,
+      "y": 85.47024,
+      "z": 861.5197,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -88.43135,
+      "y": 2.400001,
+      "z": 4.891054,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -127,
+      "y": 71.47446,
+      "z": 808.4,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -184.5137,
+      "y": 71.1816,
+      "z": 667.8036,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 52,
+      "y": 25.316154,
+      "z": 552,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -109.5452,
+      "y": 8.047999,
+      "z": -210.1855,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 194.2296,
+      "y": -0.3000001,
+      "z": 352.9844,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -330,
+      "y": 42,
+      "z": -628,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 190.3622,
+      "y": 3.880325,
+      "z": -204.7095,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 237.9156,
+      "y": -0.29999995,
+      "z": 309.4334,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -512,
+      "y": 41.999996,
+      "z": -389,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -975.4507,
+      "y": 17.57744,
+      "z": -526.2878,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 47.6,
+      "y": 3.8843424,
+      "z": -218.3,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -269.6122,
+      "y": 107.93719,
+      "z": 875.6997,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -15.89468,
+      "y": 4.0000005,
+      "z": -20.29277,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -747.4032,
+      "y": 28.970308,
+      "z": -492.1095,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -259.6,
+      "y": 3.6823246,
+      "z": 56.9,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "PotChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -172.6,
+      "y": 6.0019975,
+      "z": 103.2,
+      "set": "PotSouth"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 782.8808,
+      "y": 60.390976,
+      "z": -611.7695,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 925.6533,
+      "y": 70.21527,
+      "z": -906.2195,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 909,
+      "y": 97.05797,
+      "z": -961.8,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -661,
+      "y": 160,
+      "z": 937,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -527,
+      "y": 160.1012,
+      "z": 834,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -631.9453,
+      "y": 160,
+      "z": 808.8979,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -809,
+      "y": 6.3495464,
+      "z": -879,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 671.2,
+      "y": 60.99496,
+      "z": -550.1,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 701,
+      "y": 59.999992,
+      "z": -945,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -623,
+      "y": 160,
+      "z": 883,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -585,
+      "y": 160,
+      "z": 842,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -656.9,
+      "y": 23.036425,
+      "z": -799.3,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -839.9977,
+      "y": 160,
+      "z": 740,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -487.8,
+      "y": 48.000015,
+      "z": -953.2,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -603,
+      "y": 32,
+      "z": -869,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -637.2283,
+      "y": 32,
+      "z": -950.4841,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -866,
+      "y": -41.01304,
+      "z": -775,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 626.3,
+      "y": 61.119125,
+      "z": -844.9,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 943.4631,
+      "y": 70.21487,
+      "z": -879.5159,
+      "set": "Reroll"
+    },
+    {
+      "kind": "RerollChest",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -449.6,
+      "y": 45.6567,
+      "z": -967.0001,
+      "set": "Reroll"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -857.4,
+      "y": 71.45287,
+      "z": 379.6,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 7.60699,
+      "y": 4.3169565,
+      "z": -35.67316,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 287.2872,
+      "y": 142.99992,
+      "z": -366.9024,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -608.8,
+      "y": 59.286507,
+      "z": 373.9,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -254,
+      "y": 54.388798,
+      "z": -739,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -560.9,
+      "y": 50.74249,
+      "z": -447,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -500,
+      "y": 48.000004,
+      "z": -867.6,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 226,
+      "y": 90.400055,
+      "z": 904,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -258.7481,
+      "y": 3.588304,
+      "z": 53.59217,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -604,
+      "y": 160.05638,
+      "z": 939.1,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 756.858,
+      "y": 68.92707,
+      "z": -79.33746,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -814.6948,
+      "y": 5.6813054,
+      "z": -561.0853,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -129.7795,
+      "y": 8.029996,
+      "z": -171.18,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -847.9,
+      "y": 114,
+      "z": 196.6,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -808,
+      "y": 6.3495464,
+      "z": -879,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 960,
+      "y": 97.05797,
+      "z": -879,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 625.8,
+      "y": 61.06923,
+      "z": -846.3,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -956.1,
+      "y": 157.8,
+      "z": 720.2,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -581,
+      "y": 160,
+      "z": 791,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 108,
+      "y": 22.332209,
+      "z": -556,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -35,
+      "y": 72.89336,
+      "z": -860,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 882.1526,
+      "y": 53.999996,
+      "z": 115.9092,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 923,
+      "y": 80.26997,
+      "z": -277,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": 853.9,
+      "y": 70.20017,
+      "z": -343.3,
+      "set": "Carrot"
+    },
+    {
+      "kind": "FortuneCarrot",
+      "territoryId": 1346,
+      "mapId": 1135,
+      "x": -124,
+      "y": 76.75548,
+      "z": 777,
+      "set": "Carrot"
+    }
+  ]
+}

@@ -11,6 +11,8 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Plugin.Services;
 using ECommons.DalamudServices;
 using ECommons.GameHelpers;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
 using Ocelot;
 using Ocelot.IPC;
@@ -93,6 +95,9 @@ public class AutomatorModule : Module
             return;
         }
 
+        NorthernRoutePlanner.CancelActiveReturn();
+        Plugin.Chain.Abort();
+        Plugin.IPC.GetSubscriber<VNavmesh>().Stop();
         automator.Refresh();
         Config.Enabled = false;
         PluginConfig.Save();
@@ -126,15 +131,47 @@ public class AutomatorModule : Module
     public void DisableIllegalMode()
     {
         var wasEnabled = Config.Enabled;
+        var shouldCancelReturnCast =
+            NorthernRoutePlanner.IsReturnInProgress
+            && IsCastingReturn();
         Config.Enabled = false;
+        NorthernRoutePlanner.CancelActiveReturn();
         automator.Refresh();
         Plugin.IPC.GetSubscriber<VNavmesh>().Stop();
         Plugin.Chain.Abort();
+        if (shouldCancelReturnCast)
+        {
+            CancelCurrentCast();
+            Debug(
+                "Emergency Stop canceled the active Northern Return cast"
+            );
+        }
+
         PluginConfig.Save();
 
         if (wasEnabled)
         {
             Svc.Chat.Print(T("messages.off"));
+        }
+    }
+
+    private static unsafe bool IsCastingReturn()
+    {
+        var player = Svc.Objects.LocalPlayer;
+        var actionManager = ActionManager.Instance();
+        return player?.IsCasting == true
+               && actionManager != null
+               && actionManager->CastActionType
+               == ActionType.GeneralAction
+               && actionManager->CastActionId == 8;
+    }
+
+    private static unsafe void CancelCurrentCast()
+    {
+        var uiState = UIState.Instance();
+        if (uiState != null)
+        {
+            uiState->Hotbar.CancelCast();
         }
     }
 
@@ -327,7 +364,8 @@ public class AutomatorModule : Module
 
     private unsafe void RecordLiveEventNames()
     {
-        if (!ZoneData.IsInPluginTerritory())
+        if (!WorldObjectScanGuard.IsSafe()
+            || !ZoneData.IsInPluginTerritory())
         {
             activeCriticalEncounterNames.Clear();
             activeFateNames.Clear();
@@ -430,7 +468,9 @@ public class AutomatorModule : Module
 
     private void NorthFrameworkUpdate(IFramework framework)
     {
-        if (!ZoneData.IsInNorthernExpedition() || !Config.Enabled)
+        if (!WorldObjectScanGuard.IsSafe()
+            || !ZoneData.IsInNorthernExpedition()
+            || !Config.Enabled)
         {
             return;
         }
@@ -441,6 +481,9 @@ public class AutomatorModule : Module
 
         try
         {
+            // TargetModule is not ticked by the South-only plugin update loop in
+            // North, so refresh the shared hostile/targetable enemy snapshot here.
+            TargetHelper.Update();
             fates.tracker.Update();
             criticalEncounters.Tracker.Tick(framework);
             states.Tick();

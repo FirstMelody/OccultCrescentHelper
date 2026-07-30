@@ -44,8 +44,12 @@ public class CarrotHunt(CarrotsModule module) : Hunter(module)
 
     protected override unsafe Func<Chain> GetInteractionChain(IGameObject obj)
     {
+        var targetPosition = obj.Position;
         return () => Chain.Create()
-            .BreakIf(() => !GetValidObjects().Any(o => Vector3.Distance(o.Position, obj.Position) <= DISTANCE_TO_NODE_TO_USE))
+            .BreakIf(() => !GetValidObjects().Any(o =>
+                Vector3.Distance(o.Position, targetPosition)
+                <= DISTANCE_TO_NODE_TO_USE
+            ))
             .ConditionalThen(_ => Player.Mounted, _ => Actions.Unmount.Cast())
             .Wait(500)
             .BreakIf(() => Items.FortuneCarrot.Count() <= 0)
@@ -63,6 +67,11 @@ public class CarrotHunt(CarrotsModule module) : Hunter(module)
                 Svc.Targets.Target = chest;
 
                 var gameObject = (GameObject*)(void*)chest.Address;
+                if (gameObject == null)
+                {
+                    return true;
+                }
+
                 TargetSystem.Instance()->InteractWithObject(gameObject);
                 return Svc.Objects.LocalPlayer?.IsCasting == true;
             })

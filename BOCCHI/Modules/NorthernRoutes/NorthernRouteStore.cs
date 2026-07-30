@@ -280,6 +280,29 @@ public sealed class NorthernRouteStore
                 }
             }
 
+            foreach (var territoryRoutes in NorthernRouteDefaults.Routes
+                         .GroupBy(route => route.TerritoryId))
+            {
+                if (file.StandbyPoints.Any(point =>
+                        point.TerritoryId == territoryRoutes.Key
+                    ))
+                {
+                    continue;
+                }
+
+                var defaultRoute = territoryRoutes.First();
+                file.StandbyPoints.Add(new NorthernStandbyPoint
+                {
+                    TerritoryId = defaultRoute.TerritoryId,
+                    MapId = defaultRoute.MapId,
+                    Name = $"{defaultRoute.Name}蹲守点",
+                    X = defaultRoute.InteractionX,
+                    Y = defaultRoute.InteractionY,
+                    Z = defaultRoute.InteractionZ,
+                });
+                changed = true;
+            }
+
             if (changed)
             {
                 SaveLocked();
