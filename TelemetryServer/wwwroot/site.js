@@ -337,15 +337,54 @@ function isLikelyOnTowerPath(marker, map, image) {
 }
 
 const monsterDisplayClusterRadius = 230;
+const monsterCollisionOnlyZoom = 1.5;
+const monsterLabelCollisionGap = 3;
 const monsterLabelsPerCluster = 4;
 const monsterLabelsPerColumn = 4;
 
-function clusterMonsterMarkers(markers) {
+function monsterLabel(marker) {
+  const name = marker.name || "怪物";
+  return marker.level ? `${marker.level} ${name}` : name;
+}
+
+function monsterLabelBounds(marker, map, width, height, ctx, fontSize) {
+  const point = viewportPoint(
+    markerToPixel(marker, map, width, height),
+    width,
+    height
+  );
+  const textWidth = ctx.measureText(monsterLabel(marker)).width;
+  const lineHeight = fontSize + 2;
+  const originX = point.x + 4;
+  const originY = point.y + 4;
+  return {
+    minX: originX - monsterLabelCollisionGap,
+    minY: originY - monsterLabelCollisionGap,
+    maxX: originX + textWidth + monsterLabelCollisionGap,
+    maxY: originY + lineHeight + monsterLabelCollisionGap,
+  };
+}
+
+function boundsOverlap(left, right) {
+  return left.minX <= right.maxX
+    && left.maxX >= right.minX
+    && left.minY <= right.maxY
+    && left.maxY >= right.minY;
+}
+
+function clusterMonsterMarkers(markers, map, width, height, ctx, fontSize) {
   const centerOf = members => ({
     x: members.reduce((sum, marker) => sum + marker.x, 0) / members.length,
     y: members.reduce((sum, marker) => sum + marker.y, 0) / members.length,
     z: members.reduce((sum, marker) => sum + marker.z, 0) / members.length,
   });
+  const collisionOnly = state.viewport.zoom >= monsterCollisionOnlyZoom;
+  const bounds = collisionOnly
+    ? new Map(markers.map(marker => [
+        marker,
+        monsterLabelBounds(marker, map, width, height, ctx, fontSize),
+      ]))
+    : null;
   const clusters = [];
   const sortedMarkers = [...markers].sort((left, right) =>
     left.x - right.x || left.z - right.z || (left.baseId ?? 0) - (right.baseId ?? 0)
@@ -357,13 +396,34 @@ function clusterMonsterMarkers(markers) {
       const members = [...cluster.members, marker];
       const center = centerOf(members);
       const distinctLabels = new Set(
-        members.map(member => `${member.level ?? 0}|${member.name ?? ""}`)
+        members.map(monsterLabel)
       );
       if (distinctLabels.size > monsterLabelsPerCluster) continue;
-      if (members.some(member =>
-        Math.hypot(member.x - center.x, member.z - center.z) > monsterDisplayClusterRadius
-      )) continue;
-      const distance = Math.hypot(marker.x - cluster.center.x, marker.z - cluster.center.z);
+      let distance;
+      if (collisionOnly) {
+        if (!cluster.members.some(member =>
+          boundsOverlap(bounds.get(member), bounds.get(marker))
+        )) continue;
+        const clusterPoint = viewportPoint(
+          markerToPixel(cluster.center, map, width, height),
+          width,
+          height
+        );
+        const markerPoint = viewportPoint(
+          markerToPixel(marker, map, width, height),
+          width,
+          height
+        );
+        distance = Math.hypot(
+          markerPoint.x - clusterPoint.x,
+          markerPoint.y - clusterPoint.y
+        );
+      } else {
+        if (members.some(member =>
+          Math.hypot(member.x - center.x, member.z - center.z) > monsterDisplayClusterRadius
+        )) continue;
+        distance = Math.hypot(marker.x - cluster.center.x, marker.z - cluster.center.z);
+      }
       if (distance < bestDistance) {
         bestCluster = cluster;
         bestDistance = distance;
@@ -484,28 +544,32 @@ async function drawMap() {
     }
     return { ...point, marker };
   });
+  const monsterFontSize = Math.max(8, Math.min(12, width / 80));
+  ctx.font = `600 ${monsterFontSize}px "Microsoft YaHei", sans-serif`;
   for (const cluster of clusterMonsterMarkers(
-    drawableMarkers.filter(marker => marker.kind === "Monster")
+    drawableMarkers.filter(marker => marker.kind === "Monster"),
+    map,
+    width,
+    height,
+    ctx,
+    monsterFontSize
   )) {
-    const labels = [...new Set(cluster.members.map(marker => {
-      const name = marker.name || "怪物";
-      return marker.level ? `${marker.level} ${name}` : name;
-    }))].sort((left, right) => left.localeCompare(right, "zh-CN"));
+    const labels = [...new Set(cluster.members.map(monsterLabel))]
+      .sort((left, right) => left.localeCompare(right, "zh-CN"));
     const point = viewportPoint(
       markerToPixel(cluster.center, map, width, height),
       width,
       height
     );
-    const fontSize = Math.max(8, Math.min(12, width / 80));
-    const lineHeight = fontSize + 2;
-    ctx.font = `600 ${fontSize}px "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    const lineHeight = monsterFontSize + 2;
+    ctx.font = `600 ${monsterFontSize}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#071009dd";
     ctx.fillStyle = "#e8f2d0";
     const columnCount = Math.ceil(labels.length / monsterLabelsPerColumn);
-    const columnGap = Math.max(10, fontSize);
+    const columnGap = Math.max(10, monsterFontSize);
     const labelWidths = labels.map(label => ctx.measureText(label).width);
     const columnWidths = Array.from({ length: columnCount }, (_, column) =>
       Math.max(...labelWidths.slice(
@@ -515,7 +579,9 @@ async function drawMap() {
     );
     const totalWidth = columnWidths.reduce((sum, value) => sum + value, 0)
       + columnGap * (columnCount - 1);
-    let columnLeft = point.x - totalWidth / 2;
+    const totalHeight = Math.min(labels.length, monsterLabelsPerColumn) * lineHeight;
+    const blockOrigin = { x: point.x + 4, y: point.y + 4 };
+    let columnLeft = blockOrigin.x;
     labels.forEach((label, index) => {
       const column = Math.floor(index / monsterLabelsPerColumn);
       const row = index % monsterLabelsPerColumn;
@@ -523,8 +589,8 @@ async function drawMap() {
         monsterLabelsPerColumn,
         labels.length - column * monsterLabelsPerColumn
       );
-      const x = columnLeft + columnWidths[column] / 2;
-      const y = point.y + (row - (rowsInColumn - 1) / 2) * lineHeight;
+      const x = columnLeft;
+      const y = blockOrigin.y + row * lineHeight;
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
       if (row === rowsInColumn - 1) {
@@ -535,11 +601,12 @@ async function drawMap() {
       ...point,
       marker: cluster.members[0],
       monsterCluster: cluster.members,
-      hitRadius: Math.max(
-        12,
-        totalWidth / 2,
-        Math.min(labels.length, monsterLabelsPerColumn) * lineHeight / 2
-      ),
+      hitBounds: {
+        minX: blockOrigin.x - 3,
+        minY: blockOrigin.y - 2,
+        maxX: blockOrigin.x + totalWidth + 3,
+        maxY: blockOrigin.y + totalHeight + 2,
+      },
     });
   }
   ctx.strokeStyle = "#12182688";
@@ -550,8 +617,12 @@ async function drawMap() {
 $("plot").addEventListener("mousemove", event => {
   const rect = event.currentTarget.getBoundingClientRect();
   const x = event.clientX - rect.left, y = event.clientY - rect.top;
-  const hit = state.points.find(point =>
-    Math.hypot(point.x - x, point.y - y) < (point.hitRadius ?? 10)
+  const hit = state.points.find(point => point.hitBounds
+    ? x >= point.hitBounds.minX
+      && x <= point.hitBounds.maxX
+      && y >= point.hitBounds.minY
+      && y <= point.hitBounds.maxY
+    : Math.hypot(point.x - x, point.y - y) < (point.hitRadius ?? 10)
   );
   const tip = $("tooltip");
   if (!hit) { tip.hidden = true; return; }
