@@ -312,6 +312,9 @@ public sealed class TelemetryModule : Module
         batch.Markers.AddRange(
             devMap.GetTelemetryMarkersSnapshot()
                 .Where(IsFinite)
+                .Where(marker =>
+                    marker.Type != DevMarkerType.Monster || marker.Level != 1
+                )
                 .Select(marker => new TelemetryMarker
                 {
                     Source = marker.Type == DevMarkerType.Monster ? "monster" : "dev-map",

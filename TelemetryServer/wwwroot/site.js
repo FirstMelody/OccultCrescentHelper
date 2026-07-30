@@ -471,6 +471,7 @@ async function drawMap() {
 
   const drawableMarkers = [...state.markers, ...trapCandidatesForMap(map)].filter(marker =>
     isDrawableMarker(marker)
+    && !(marker.kind === "Monster" && marker.level === 1)
     && !state.hiddenKinds.has(marker.kind)
     && isLikelyOnTowerPath(marker, map, image)
   );

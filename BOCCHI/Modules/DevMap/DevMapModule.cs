@@ -636,7 +636,7 @@ public class DevMapModule : Module
             var battleChara = (BattleChara*)monster.Address;
             var level = (uint)battleChara->ForayInfo.Level;
             var name = monster.Name.TextValue.Trim();
-            if (level == 0 || string.IsNullOrWhiteSpace(name))
+            if (level is 0 or 1 || string.IsNullOrWhiteSpace(name))
             {
                 continue;
             }
@@ -758,6 +758,11 @@ public class DevMapModule : Module
         string name
     )
     {
+        if (level == 1)
+        {
+            return false;
+        }
+
         var existing = markerFile.Markers.FirstOrDefault(marker =>
             marker.Type == DevMarkerType.Monster
             && marker.TerritoryId == territoryId
@@ -1816,7 +1821,11 @@ public class DevMapModule : Module
         {
             if (marker.Type == DevMarkerType.Monster)
             {
-                monsterMarkers.Add(new MonsterMapMarker(marker, false));
+                if (marker.Level != 1)
+                {
+                    monsterMarkers.Add(new MonsterMapMarker(marker, false));
+                }
+
                 continue;
             }
 
@@ -1843,6 +1852,12 @@ public class DevMapModule : Module
                      marker.TerritoryId == territoryId
                      && marker.MapId == mapId
                      && IsSharedDrawableMarker(marker)
+                     && !(string.Equals(
+                              marker.Source,
+                              "monster",
+                              StringComparison.OrdinalIgnoreCase
+                          )
+                          && marker.Level == 1)
                      && !HasLocalEquivalent(marker)
                  ))
         {
@@ -2853,6 +2868,7 @@ public class DevMapModule : Module
             local.TerritoryId == sharedMarker.TerritoryId
             && local.MapId == sharedMarker.MapId
             && (local.Type == type || AreMergeableMarkerTypes(local.Type, type))
+            && (type != DevMarkerType.Monster || local.Level != 1)
             && (type != DevMarkerType.Monster
                 || sharedMarker.BaseId is not { } baseId
                 || local.BaseId == baseId)

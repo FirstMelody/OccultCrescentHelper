@@ -424,6 +424,7 @@ public sealed class TelemetryStore
                     MAX(last_seen_utc) AS last_seen_utc,
                     COUNT(*) AS reporter_count
                 FROM marker_reports
+                WHERE NOT (source = 'monster' AND level = 1)
                 GROUP BY
                     source, kind, territory_id, map_id,
                     base_id_key, event_id_key, x, y, z
@@ -533,6 +534,7 @@ public sealed class TelemetryStore
                 FROM marker_reports
                 WHERE ($territory IS NULL OR territory_id = $territory)
                   AND ($map IS NULL OR map_id = $map)
+                  AND NOT (source = 'monster' AND level = 1)
                 GROUP BY
                     source, kind, territory_id, map_id,
                     base_id_key, event_id_key, x, y, z
@@ -1108,7 +1110,7 @@ public sealed class TelemetryStore
 
         if (source == "monster"
             && (marker.BaseId is not > 0
-                || marker.Level is not > 0 or > 100
+                || marker.Level is not > 1 or > 100
                 || string.IsNullOrWhiteSpace(marker.Name)))
         {
             return false;
