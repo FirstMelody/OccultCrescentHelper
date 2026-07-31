@@ -79,6 +79,7 @@ canvas.is-dragging { cursor: grabbing; }
   margin: 0;
   padding: 0;
 }
+.trap-range-toggle[hidden] { display: none; }
 .zoom-controls {
   align-items: center;
   background: #090b11d9;

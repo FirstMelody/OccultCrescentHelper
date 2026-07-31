@@ -253,6 +253,10 @@ function collapseTrapVariantMarkers(markers) {
   return collapsed;
 }
 
+function isMagicTowerMap(map) {
+  return map?.contentName === "两歧塔 魔之塔";
+}
+
 function selectCurrentMap() {
   const [territoryId, mapId] = $("mapSelect").value.split(":").map(Number);
   const previousKey = state.selectedMap
@@ -268,6 +272,7 @@ function selectCurrentMap() {
   $("map").textContent = map?.mapId ?? "—";
   $("mapResource").textContent = map?.mapResourceId ?? "—";
   $("mapTitle").textContent = map ? `${map.placeName}点位` : "游戏地图点位";
+  $("trapRangeToggle").hidden = !isMagicTowerMap(map);
 }
 
 async function refresh() {
