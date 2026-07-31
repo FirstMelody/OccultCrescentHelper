@@ -9,6 +9,8 @@ namespace BOCCHI.Modules.Automator;
 
 internal sealed class AutoResurrectionController
 {
+    private const uint InvalidEntityId = 0xE0000000;
+
     private DateTime acceptAt = DateTime.MinValue;
     private nint promptAddress;
     private bool promptHandled;
@@ -24,7 +26,7 @@ internal sealed class AutoResurrectionController
         }
 
         var reviveAgent = AgentRevive.Instance();
-        if (reviveAgent == null || !reviveAgent->IsAgentActive())
+        if (!HasIncomingResurrection(reviveAgent))
         {
             Reset();
             return;
@@ -55,6 +57,9 @@ internal sealed class AutoResurrectionController
             );
             DebugLog.Debug(
                 "Auto resurrection: detected revive prompt; "
+                + $"source={reviveAgent->ResurrectingPlayerId}, "
+                + $"remaining={reviveAgent->ResurrectionTimeLeft}, "
+                + $"state={reviveAgent->ReviveState}, "
                 + $"accepting after {config.AutoAcceptResurrectionDelay:F1}s"
             );
             return;
@@ -73,8 +78,7 @@ internal sealed class AutoResurrectionController
             "SelectYesno",
             1
         );
-        if (reviveAgent == null
-            || !reviveAgent->IsAgentActive()
+        if (!HasIncomingResurrection(reviveAgent)
             || addon == null
             || !addon->AtkUnitBase.IsVisible
             || (nint)addon != promptAddress
@@ -88,6 +92,21 @@ internal sealed class AutoResurrectionController
         acceptAt = DateTime.MinValue;
         addon->AtkUnitBase.FireCallbackInt(0);
         DebugLog.Debug("Auto resurrection: accepted revive prompt");
+    }
+
+    private static unsafe bool HasIncomingResurrection(AgentRevive* reviveAgent)
+    {
+        if (reviveAgent == null
+            || !reviveAgent->IsAgentActive()
+            || reviveAgent->Revive == null)
+        {
+            return false;
+        }
+
+        var sourceId = reviveAgent->ResurrectingPlayerId;
+        return sourceId is not 0 and not InvalidEntityId
+               && reviveAgent->ResurrectionTimeLeft > 0
+               && reviveAgent->Revive->Timer > 0f;
     }
 
     private void Reset()
