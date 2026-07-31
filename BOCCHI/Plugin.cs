@@ -16,7 +16,7 @@ public sealed class Plugin : OcelotPlugin
 {
     public override string Name
     {
-        get => "Occult Crescent Helper";
+        get => "BOCCHI 新月岛辅助";
     }
 
     public Config Config { get; }
@@ -138,7 +138,9 @@ public sealed class Plugin : OcelotPlugin
         I18N.SetLanguage(lang);
 
         var today = DateTime.Today;
-        if (today is { Month: 4, Day: 1 } && Random.Shared.NextDouble() < 0.05)
+        if (lang != "zh"
+            && today is { Month: 4, Day: 1 }
+            && Random.Shared.NextDouble() < 0.05)
         {
             I18N.SetLanguage("uwu");
         }

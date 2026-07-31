@@ -23,7 +23,7 @@ public abstract class BasePathfinder(float returnCost = 300f, float teleportCost
     {
         if (State != PathfinderState.FileLoaded)
         {
-            throw new Exception("File not loaded");
+            throw new Exception("路径数据文件尚未加载");
         }
 
         State = PathfinderState.Pathfinding;

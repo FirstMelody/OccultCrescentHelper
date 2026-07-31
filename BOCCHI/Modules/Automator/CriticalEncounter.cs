@@ -42,7 +42,7 @@ public class CriticalEncounter : Activity
         {
             if (!IsValid())
             {
-                throw new Exception("Activity is no longer valid.");
+                throw new Exception("当前活动已失效。");
             }
 
             // Reaching the CE's mechanic area is sufficient. This check must also
@@ -90,7 +90,7 @@ public class CriticalEncounter : Activity
 
             if (encounter.State != DynamicEventState.Register)
             {
-                throw new Exception("This event started without you");
+                throw new Exception("此事件已开始，但你未能加入");
             }
 
             if (finalDestination)
@@ -137,7 +137,7 @@ public class CriticalEncounter : Activity
                     {
                         if (!IsValid())
                         {
-                            throw new Exception("The critical encounter appears to have started without you.");
+                            throw new Exception("紧急遭遇战似乎已经开始，但你未能加入。");
                         }
 
                         var critical = module.GetModule<CriticalEncountersModule>();
@@ -146,7 +146,7 @@ public class CriticalEncounter : Activity
                         if (encounter.State == DynamicEventState.Battle &&
                             states.GetState() != State.InCriticalEncounter)
                         {
-                            throw new Exception("The critical encounter appears to have started without you.");
+                            throw new Exception("紧急遭遇战似乎已经开始，但你未能加入。");
                         }
 
                         if (!vnav.IsRunning() && states.GetState() == State.InCombat)

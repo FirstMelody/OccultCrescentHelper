@@ -26,17 +26,17 @@ public class MainCommand(Plugin plugin) : OcelotCommand
     protected override string Description
     {
         get => @"
-Opens Occult Crescent Helper main ui
- - /bocchi : Opens the main ui
- - /bocchi config : opens the config ui
- - /bocchi cfg : opens the config ui
- - /bocchi dev : toggles dev map authoring mode
- - /bocchi dev bind : binds the current territory as Northern Expedition
- - /bocchi dev tower : binds and forces the current territory as Forked Tower: Blood
- - /bocchi dev tower-auto : stops forcing Tower detection and uses status detection
- - /bocchi dev route [name] : records the targeted North aethernet and current arrival position
- - /bocchi debug-log [on|off|status] : developer logging (off by default)
- - /bocchi telemetry [on|off|status] : anonymous map telemetry
+打开 BOCCHI 新月岛辅助主界面
+ - /bocchi：打开主界面
+ - /bocchi config：打开设置界面
+ - /bocchi cfg：打开设置界面
+ - /bocchi dev：切换开发者地图采集模式
+ - /bocchi dev bind：将当前区域绑定为北征之章
+ - /bocchi dev tower：将当前区域绑定并强制识别为两歧塔 血之塔
+ - /bocchi dev tower-auto：停止强制识别，改用塔内状态自动判断
+ - /bocchi dev route [名称]：记录当前选中的北岛魔路及到达位置
+ - /bocchi debug-log [on|off|status]：管理调试日志（默认关闭）
+ - /bocchi telemetry [on|off|status]：管理匿名地图资料共享
 --------------------------------
 ".Trim();
     }
@@ -48,7 +48,7 @@ Opens Occult Crescent Helper main ui
 
     private readonly IReadOnlyList<string> languageCodes =
     [
-        "en", "de", "fr", "jp", "uwu",
+        "en", "de", "fr", "jp", "zh", "uwu",
     ];
 
     public override void Execute(string command, string arguments)
@@ -90,15 +90,15 @@ Opens Occult Crescent Helper main ui
                 if (languageCodes.Contains(code))
                 {
                     I18N.SetLanguage(code);
-                    Svc.Chat.Print($"Language set to: {code}");
+                    Svc.Chat.Print($"[BOCCHI] 语言已切换为：{code}");
                     return;
                 }
 
-                Svc.Log.Error($"Unknown language code: {code}");
+                Svc.Log.Error($"未知语言代码：{code}");
                 return;
             }
 
-            Svc.Chat.Print("Usage: /bocchi language <code>");
+            Svc.Chat.Print("[BOCCHI] 用法：/bocchi language <语言代码>");
             return;
         }
 
@@ -229,7 +229,7 @@ Opens Occult Crescent Helper main ui
                 $"[BOCCHI] 已记录魔路“{route.Name}”："
                 + $"对象=({target.Position.X:F3}, {target.Position.Y:F3}, {target.Position.Z:F3})，"
                 + $"落点=({Player.Position.X:F3}, {Player.Position.Y:F3}, {Player.Position.Z:F3})，"
-                + $"Base={target.BaseId}。"
+                + $"基础编号={target.BaseId}。"
             );
             Svc.Log.Information(
                 $"North route sampled by command: name={route.Name}, "
@@ -246,7 +246,7 @@ Opens Occult Crescent Helper main ui
             var mapId = Svc.ClientState.MapId;
             if (territoryId == 0 || mapId == 0)
             {
-                Svc.Chat.Print("[BOCCHI] 当前 Territory/Map 尚不可用，请进入目标区域后重试。");
+                Svc.Chat.Print("[BOCCHI] 当前区域编号或地图编号尚不可用，请进入目标区域后重试。");
                 return;
             }
 
@@ -257,7 +257,7 @@ Opens Occult Crescent Helper main ui
             plugin.Windows.OpenMainUI();
 
             Svc.Chat.Print(
-                $"[BOCCHI] 已将当前区域记录为“北征之章”：Territory={territoryId}, Map={mapId}。dev 模式已启用。"
+                $"[BOCCHI] 已将当前区域记录为“北征之章”：区域编号={territoryId}，地图编号={mapId}。开发者模式已启用。"
             );
             return;
         }
@@ -268,7 +268,7 @@ Opens Occult Crescent Helper main ui
             var mapId = Svc.ClientState.MapId;
             if (territoryId == 0 || mapId == 0)
             {
-                Svc.Chat.Print("[BOCCHI] 当前 Territory/Map 尚不可用，请进入目标区域后重试。");
+                Svc.Chat.Print("[BOCCHI] 当前区域编号或地图编号尚不可用，请进入目标区域后重试。");
                 return;
             }
 
@@ -281,7 +281,7 @@ Opens Occult Crescent Helper main ui
             plugin.Windows.OpenMainUI();
 
             Svc.Chat.Print(
-                $"[BOCCHI] 已将当前区域强制记录为 Forked Tower: Blood：Territory={territoryId}, Map={mapId}。"
+                $"[BOCCHI] 已将当前区域强制记录为“两歧塔 血之塔”：区域编号={territoryId}，地图编号={mapId}。"
             );
             return;
         }
@@ -290,7 +290,7 @@ Opens Occult Crescent Helper main ui
         {
             plugin.Config.ForceForkedTowerBloodTerritory = false;
             plugin.Config.Save();
-            Svc.Chat.Print("[BOCCHI] 已关闭强制 Tower 判定，保留绑定并恢复状态检测。");
+            Svc.Chat.Print("[BOCCHI] 已关闭强制塔区判定，保留绑定并恢复状态检测。");
             return;
         }
 
@@ -313,6 +313,6 @@ Opens Occult Crescent Helper main ui
         }
 
         plugin.Config.Save();
-        Svc.Chat.Print($"[BOCCHI] dev 模式已{(plugin.Config.DevModeEnabled ? "启用" : "关闭")}。");
+        Svc.Chat.Print($"[BOCCHI] 开发者模式已{(plugin.Config.DevModeEnabled ? "启用" : "关闭")}。");
     }
 }

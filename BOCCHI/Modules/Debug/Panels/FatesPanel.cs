@@ -66,12 +66,12 @@ public class FatesPanel : Panel
 
     public override string GetName()
     {
-        return "Fates";
+        return "临危受命";
     }
 
     public override void Render(DebugModule module)
     {
-        OcelotUi.Title("Fates:");
+        OcelotUi.Title("临危受命：");
         OcelotUi.Indent(() =>
         {
             foreach (var data in EventData.Fates.Values)

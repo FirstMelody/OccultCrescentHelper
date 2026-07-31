@@ -21,11 +21,11 @@ public class OCHCmdCommand(Plugin plugin) : OcelotCommand
     protected override string Description
     {
         get => @"
-Utility command.
- - Flag commands clear active flag before trying to place a new one
-   - /bocchicmd flag-active-ce (Place a flag marker on the current Critical Engagement)
-   - /bocchicmd flag-active-fate (Place a flag marker on a current Fate)
-   - /bocchicmd flag-active-non-pot-fate (Place a flag marker on a current fate that isn't a pot fate)
+实用工具命令。
+ - 放置新旗标前会先清除已有旗标
+   - /bocchicmd flag-active-ce（在当前紧急遭遇战位置放置旗标）
+   - /bocchicmd flag-active-fate（在当前临危受命位置放置旗标）
+   - /bocchicmd flag-active-non-pot-fate（在当前非魔法罐临危受命位置放置旗标）
 --------------------------------
 ".Trim();
     }

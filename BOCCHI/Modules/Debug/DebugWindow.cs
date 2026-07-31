@@ -26,6 +26,6 @@ public class DebugWindow(Plugin priamryPlugin, Config config) : OcelotWindow(pri
 
     protected override string GetWindowName()
     {
-        return "OCH Debug";
+        return "BOCCHI 调试";
     }
 }

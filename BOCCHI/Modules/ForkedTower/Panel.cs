@@ -13,13 +13,13 @@ public class Panel
             return;
         }
 
-        OcelotUi.Title("Forked Tower:");
+        OcelotUi.Title("两歧塔：");
         OcelotUi.Indent(() =>
         {
-            var state = OcelotUi.LabelledValue("Tower ID", module.TowerRun.Hash);
+            var state = OcelotUi.LabelledValue("本次塔次编号", module.TowerRun.Hash);
             if (state == UiState.Hovered)
             {
-                ImGui.SetTooltip("This is unique to you.");
+                ImGui.SetTooltip("此编号仅用于区分你本地记录的不同塔次。");
             }
         });
     }

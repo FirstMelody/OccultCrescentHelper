@@ -1,9 +1,9 @@
 {
-  "Author": "Faye, FirstMelody fork",
-  "Name": "Better Occult Crescent & Chest Helper Interface",
+  "Author": "Faye、FirstMelody 分支",
+  "Name": "BOCCHI 新月岛辅助",
   "InternalName": "BOCCHI",
   "Punchline": "⚠ 极度不稳定，随时更新，谨慎使用。",
-  "Description": "⚠ 极度不稳定，随时更新，谨慎使用。\n\nBOCCHI 蜃景幻界辅助的实验性开发分支，包含北征之章地图采集、CE/FATE、宝箱/胡萝卜标记与 Forked Tower 雷点研究功能。\n\n匿名地图遥测仅在用户明确同意后启用，不上传角色名、CID、账号、服务器、聊天内容或玩家实时位置。",
+  "Description": "⚠ 极度不稳定，随时更新，谨慎使用。\n\nBOCCHI 蜃景幻界辅助的实验性开发分支，包含北征之章地图采集、紧急遭遇战、临危受命、宝箱、胡萝卜标记与两歧塔雷点研究功能。",
   "IconUrl": "https://raw.githubusercontent.com/FirstMelody/OccultCrescentHelper/refs/heads/master/assets/icon.png",
   "ApplicableVersion": "any",
   "DalamudApiLevel": 15,

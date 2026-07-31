@@ -21,7 +21,7 @@ public class ActivityTargetPanel : Panel
 
     public override string GetName()
     {
-        return "Activity Targets";
+        return "活动目标";
     }
 
     public override unsafe void Render(DebugModule module)
@@ -38,10 +38,10 @@ public class ActivityTargetPanel : Panel
                 ImGui.TextUnformatted(enemy.Name.ToString());
                 OcelotUi.Indent(() =>
                 {
-                    OcelotUi.LabelledValue("Object Kind", enemy.ObjectKind);
-                    OcelotUi.LabelledValue("Targetable", enemy.IsTargetable ? "Yes" : "No");
-                    OcelotUi.LabelledValue("Is Alive", enemy.IsDead ? "No" : "Yes");
-                    OcelotUi.LabelledValue("Is Activity Target", IsActivityTarget(enemy, module) ? "Yes" : "No");
+                    OcelotUi.LabelledValue("对象类型", enemy.ObjectKind);
+                    OcelotUi.LabelledValue("可选中", enemy.IsTargetable ? "是" : "否");
+                    OcelotUi.LabelledValue("存活", enemy.IsDead ? "否" : "是");
+                    OcelotUi.LabelledValue("属于当前活动目标", IsActivityTarget(enemy, module) ? "是" : "否");
                 });
             }
         });

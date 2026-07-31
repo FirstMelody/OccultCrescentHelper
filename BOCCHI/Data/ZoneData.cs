@@ -119,7 +119,7 @@ public static class ZoneData
             return "South Horn";
         }
 
-        throw new Exception("Unknown Zone");
+        throw new Exception("未知区域");
     }
 
     public static string GetCurrentZoneDataDirectory()

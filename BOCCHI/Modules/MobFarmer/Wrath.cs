@@ -25,7 +25,7 @@ public class Wrath : IRotationPlugin
         var lease = wrath.RegisterForLease(Svc.PluginInterface.InternalName, module.GetType().FullName!);
         if (lease == null)
         {
-            throw new Exception("Unable to create Wrath Combo");
+            throw new Exception("无法创建 Wrath Combo 租约");
         }
 
         this.lease = (Guid)lease;

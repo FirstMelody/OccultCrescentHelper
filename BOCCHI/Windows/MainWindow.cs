@@ -32,7 +32,7 @@ public class MainWindow(Plugin primaryPlugin, Config config) : OcelotMainWindow(
             Icon = FontAwesomeIcon.Code,
             IconOffset = new Vector2(2, 2),
             ShowTooltip = () => ImGui.SetTooltip(
-                primaryPlugin.Config.DevModeEnabled ? "关闭 dev 地图标注模式" : "开启 dev 地图标注模式"
+                primaryPlugin.Config.DevModeEnabled ? "关闭开发者地图标注模式" : "开启开发者地图标注模式"
             ),
         });
 
@@ -75,7 +75,7 @@ public class MainWindow(Plugin primaryPlugin, Config config) : OcelotMainWindow(
         {
             ImGui.TextUnformatted(I18N.T("generic.label.not_in_zone"));
             ImGui.TextWrapped("如当前区域是“蜃景幻界：新月岛 北征之章”，请使用 /bocchi dev bind 强制绑定当前区域。");
-            if (ImGui.Button("将当前 Territory 设为 Forked Tower: Blood##BindUnknownTower"))
+            if (ImGui.Button("将当前区域设为两歧塔 血之塔##BindUnknownTower"))
             {
                 Plugin.Modules.GetModule<DevMapModule>()
                     .BindCurrentTerritoryAsForkedTowerBlood();

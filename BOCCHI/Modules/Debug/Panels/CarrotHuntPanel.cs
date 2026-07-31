@@ -56,17 +56,17 @@ public class CarrotHuntPanel : Panel
 
     public override string GetName()
     {
-        return "Carrot Hunt Helper";
+        return "胡萝卜寻路辅助";
     }
 
     public override unsafe void Render(DebugModule module)
     {
         var vnav = module.GetIPCSubscriber<VNavmesh>();
-        OcelotUi.LabelledValue("Carrots", CarrotData.Data.Count); // 25
+        OcelotUi.LabelledValue("胡萝卜", CarrotData.Data.Count); // 25
 
         OcelotUi.Indent(() =>
         {
-            if (ImGui.Button("Test carrot usage chain"))
+            if (ImGui.Button("测试胡萝卜使用任务链"))
             {
                 Plugin.Chain.Submit(() => Chain.Create()
                     .ConditionalThen(_ => Player.Mounted, _ => Actions.Unmount.Cast())
@@ -111,7 +111,7 @@ public class CarrotHuntPanel : Panel
 
             if (!HasRun)
             {
-                if (ImGui.Button("Run"))
+                if (ImGui.Button("运行"))
                 {
                     ShouldRun = true;
                 }
@@ -121,9 +121,9 @@ public class CarrotHuntPanel : Panel
 
             var Completion = (float)Progress / (float)MaxProgress * 100;
 
-            OcelotUi.LabelledValue("Progress: ", $"{Completion:f2}%");
-            OcelotUi.Indent(() => OcelotUi.LabelledValue("Calculations: ", $"{Progress}/{MaxProgress}"));
-            OcelotUi.LabelledValue("Elapsed: ", stopwatch.Elapsed.ToString("mm\\:ss"));
+            OcelotUi.LabelledValue("进度：", $"{Completion:f2}%");
+            OcelotUi.Indent(() => OcelotUi.LabelledValue("计算量：", $"{Progress}/{MaxProgress}"));
+            OcelotUi.LabelledValue("已用时间：", stopwatch.Elapsed.ToString("mm\\:ss"));
         });
     }
 

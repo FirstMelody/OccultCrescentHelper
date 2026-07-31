@@ -83,7 +83,7 @@ public sealed class TelemetryModule : Module
         {
             Svc.Chat.Print(
                 enabled
-                    ? "[BOCCHI] 匿名地图遥测已开启。不会上传角色名、CID、服务器或玩家坐标。"
+                    ? "[BOCCHI] 匿名地图遥测已开启。不会上传角色名、内容编号、服务器或玩家坐标。"
                     : "[BOCCHI] 匿名地图遥测已关闭。"
             );
         }
@@ -115,7 +115,7 @@ public sealed class TelemetryModule : Module
         }
 
         ImGui.TextWrapped(
-            "仅上传地图标记、事件/对象 ID、静止未交战怪物的名称/等级和坐标；"
+            "仅上传地图标记、事件或对象编号、静止未交战怪物的名称、等级和坐标；"
             + "不上传角色或账号信息。"
         );
         ImGui.TextDisabled(GetStatus());
@@ -226,12 +226,12 @@ public sealed class TelemetryModule : Module
 
         ImGui.TextWrapped(
             "是否帮助收集蜃景幻界地图资料？开启后，BOCCHI 会自动上传已记录的宝箱、胡萝卜、"
-            + "FATE、CE、调查地点、静止未交战怪物的名称/等级，"
-            + "以及 Tower EventObj 的游戏内容坐标。"
+            + "临危受命、紧急遭遇战、调查地点、静止未交战怪物的名称和等级，"
+            + "以及塔内事件对象的游戏内容坐标。"
         );
         ImGui.Spacing();
         ImGui.TextWrapped(
-            "不会上传角色名、Content ID、账号、服务器、聊天内容或玩家实时位置。"
+            "不会上传角色名、内容编号、账号、服务器、聊天内容或玩家实时位置。"
         );
         ImGui.TextWrapped("数据将作为公开的聚合地图资料展示，可随时用 /bocchi telemetry off 关闭。");
         ImGui.Spacing();

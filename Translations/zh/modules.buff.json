@@ -2,28 +2,32 @@
   "modules": {
     "buff": {
       "config": {
-        "title": "Buff设置",
+        "title": "增益设置",
         "apply_romeos_ballad": {
           "label": "使用爱之歌",
-          "tooltip": "使用辅助职业吟游诗人的Buff「爱之歌」"
+          "tooltip": "使用辅助职业吟游诗人的增益技能「爱之歌」"
         },
         "apply_enduring_fortitude": {
           "label": "使用祈祷",
-          "tooltip": "使用辅助职业骑士的Buff「祈祷」"
+          "tooltip": "使用辅助职业骑士的增益技能「祈祷」"
         },
         "apply_fleetfooted": {
           "label": "使用架招",
-          "tooltip": "使用辅助职业武僧的Buff「架招」"
+          "tooltip": "使用辅助职业武僧的增益技能「架招」"
+        },
+        "apply_quicker_step": {
+          "label": "使用快步",
+          "tooltip": "使用辅助职业舞者的增益技能「快步」"
         },
         "reapply_threshold": {
           "label": "重新使用阈值",
-          "tooltip": "在自动执行期间如果Buff时长低于此时间，将会更新Buff"
+          "tooltip": "自动执行期间，如果增益剩余时间低于此值，将重新使用增益技能"
         }
       },
       "panel": {
-        "title": "Buff",
+        "title": "增益",
         "button": {
-          "tooltip": "切换到启用的每个Buff的辅助职业，使用Buff技能，然后切换回原来的辅助职业。"
+          "tooltip": "依次切换到已启用增益对应的辅助职业，使用增益技能，然后切换回原来的辅助职业。"
         }
       }
     }

@@ -35,7 +35,7 @@ public class Alerter : IDisposable
     {
         if (module.Config.LogSpawn)
         {
-            Svc.Chat.Print($"{fate.Name} has Spawned");
+            Svc.Chat.Print($"临危受命“{fate.Name}”已出现");
         }
 
         if (!ShouldAlertForFate(fate))
@@ -50,7 +50,7 @@ public class Alerter : IDisposable
     {
         if (module.Config.LogSpawn)
         {
-            Svc.Chat.Print($"{fate.Name} has Despawned");
+            Svc.Chat.Print($"临危受命“{fate.Name}”已消失");
         }
 
         if (!ShouldAlertForFate(fate))

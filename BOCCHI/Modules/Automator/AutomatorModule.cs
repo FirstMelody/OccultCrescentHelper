@@ -476,7 +476,7 @@ public class AutomatorModule : Module
         {
             Svc.Log.Error(ex, "North Illegal Mode update failed; disabling automation");
             DisableIllegalMode();
-            Svc.Chat.PrintError("[BOCCHI] 北征 Illegal Mode 更新失败，已自动关闭以避免连续报错。");
+            Svc.Chat.PrintError("[BOCCHI] 北征非法模式更新失败，已自动关闭以避免连续报错。");
         }
     }
 

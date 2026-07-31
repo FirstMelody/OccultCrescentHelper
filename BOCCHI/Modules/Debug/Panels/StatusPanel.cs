@@ -10,7 +10,7 @@ public class StatusPanel : Panel
 {
     public override string GetName()
     {
-        return "Statuses";
+        return "状态效果";
     }
 
     public override void Render(DebugModule module)
@@ -18,7 +18,7 @@ public class StatusPanel : Panel
         var data = Svc.Data.GetExcelSheet<Status>();
 
 
-        OcelotUi.Title("Statuses:");
+        OcelotUi.Title("状态效果：");
         OcelotUi.Indent(() =>
         {
             foreach (var s in Svc.Objects.LocalPlayer!.StatusList)

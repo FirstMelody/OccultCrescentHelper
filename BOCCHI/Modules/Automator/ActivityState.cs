@@ -15,12 +15,12 @@ public static class ActivityStateExtensions
     {
         return state switch
         {
-            ActivityState.Idle => "Idle",
-            ActivityState.Pathfinding => "Pathfinding",
-            ActivityState.WaitingToStartCriticalEncounter => "Waiting to Start (CE)",
-            ActivityState.Participating => "Participating",
-            ActivityState.Done => "Done",
-            _ => "Unknown",
+            ActivityState.Idle => "待机",
+            ActivityState.Pathfinding => "正在前往目标",
+            ActivityState.WaitingToStartCriticalEncounter => "等待紧急遭遇战开始",
+            ActivityState.Participating => "正在参战",
+            ActivityState.Done => "已完成",
+            _ => "未知状态",
         };
     }
 }

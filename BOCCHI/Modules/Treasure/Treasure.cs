@@ -118,10 +118,10 @@ public class Treasure
     {
         return GetTreasureType() switch
         {
-            TreasureType.Bronze => "Bronze Treasure Coffer",
-            TreasureType.Silver => "Silver Treasure Coffer",
-            TreasureType.Gold => "Pot Treasure Coffer",
-            _ => "Unknown Treasure Coffer",
+            TreasureType.Bronze => "青铜宝箱",
+            TreasureType.Silver => "白银宝箱",
+            TreasureType.Gold => "罐子宝箱",
+            _ => "未知宝箱",
         };
     }
 }

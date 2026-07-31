@@ -29,14 +29,14 @@ public class TeleportCommand(Plugin plugin) : OcelotCommand
     {
         if (ZoneData.GetNearbyAethernetShards().Count <= 0)
         {
-            Svc.Chat.Print("You are not near a aethernet shards.");
+            Svc.Chat.Print("[BOCCHI] 附近没有可用的魔路节点。");
             return;
         }
 
         var lifestream = plugin.IPC.GetSubscriber<Lifestream>();
         if (!lifestream.IsReady() || lifestream.IsBusy())
         {
-            Svc.Chat.Print("Lifestream is busy");
+            Svc.Chat.Print("[BOCCHI] 传送插件当前正忙。");
             return;
         }
 
@@ -65,13 +65,13 @@ public class TeleportCommand(Plugin plugin) : OcelotCommand
 
         if (shard == null)
         {
-            Svc.Chat.Print("No aethernet shard found");
+            Svc.Chat.Print("[BOCCHI] 未找到合适的魔路节点。");
             return;
         }
 
         if (ZoneData.IsNearAethernetShard((Aethernet)shard))
         {
-            Svc.Chat.Print("You are already at the closest shard");
+            Svc.Chat.Print("[BOCCHI] 你已经位于最近的魔路节点旁。");
             return;
         }
 

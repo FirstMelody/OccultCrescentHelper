@@ -93,7 +93,7 @@ public class ReturnChain(TeleporterModule module, ReturnChainConfig config) : Re
             return position;
         }
 
-        throw new Exception("Unable to determine Aetheryte position");
+        throw new Exception("无法确定以太水晶位置");
     }
 
     private float GetCostToReturn()
@@ -104,7 +104,7 @@ public class ReturnChain(TeleporterModule module, ReturnChainConfig config) : Re
         }
 
 
-        throw new Exception("Unable to determine Starting position");
+        throw new Exception("无法确定起始位置");
     }
 
     private float GetCostToWalk()

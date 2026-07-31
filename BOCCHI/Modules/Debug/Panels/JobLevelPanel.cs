@@ -13,7 +13,7 @@ public class JobLevelPanel : Panel
 
     public override string GetName()
     {
-        return "Job Level";
+        return "辅助职业等级";
     }
 
     public override unsafe void Render(DebugModule module)
@@ -28,13 +28,13 @@ public class JobLevelPanel : Panel
                 OcelotUi.Indent(() =>
                 {
                     var level = state->SupportJobLevels[(byte)job.RowId];
-                    OcelotUi.LabelledValue("Level", $"{level}/{job.LevelMax}");
+                    OcelotUi.LabelledValue("等级", $"{level}/{job.LevelMax}");
                 });
 
                 OcelotUi.Indent(() =>
                 {
                     var exp = state->SupportJobExperience[(byte)job.RowId];
-                    OcelotUi.LabelledValue("Exp", exp);
+                    OcelotUi.LabelledValue("经验值", exp);
                 });
             }
         });

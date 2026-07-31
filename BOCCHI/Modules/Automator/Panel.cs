@@ -49,7 +49,7 @@ public class Panel
     public void DrawEventControls(AutomatorModule module)
     {
         var illegalEnabled = module.Config.Enabled;
-        if (ImGui.Checkbox("直接启用 Illegal Mode##IllegalModeDirect", ref illegalEnabled))
+        if (ImGui.Checkbox("直接启用非法模式##IllegalModeDirect", ref illegalEnabled))
         {
             if (illegalEnabled)
             {
@@ -63,7 +63,7 @@ public class Panel
 
         var toggleAiProvider = module.Config.ToggleAiProvider;
         if (ImGui.Checkbox(
-                "自动切换 BossMod AI（默认关闭）##IllegalModeToggleAI",
+                "自动切换 BossMod 战斗功能（默认关闭）##IllegalModeToggleAI",
                 ref toggleAiProvider
             ))
         {
@@ -72,7 +72,7 @@ public class Panel
         }
 
         var doCriticalEncounters = module.Config.DoCriticalEncounters;
-        if (ImGui.Checkbox("参加 CE##IllegalModeCE", ref doCriticalEncounters))
+        if (ImGui.Checkbox("参加紧急遭遇战##IllegalModeCE", ref doCriticalEncounters))
         {
             module.Config.DoCriticalEncounters = doCriticalEncounters;
             module.PluginConfig.Save();
@@ -83,7 +83,7 @@ public class Panel
         DrawRecordedCriticalEncounters(module);
 
         var doFates = module.Config.DoFates;
-        if (ImGui.Checkbox("参加 FATE##IllegalModeFATE", ref doFates))
+        if (ImGui.Checkbox("参加临危受命##IllegalModeFATE", ref doFates))
         {
             module.Config.DoFates = doFates;
             module.PluginConfig.Save();
@@ -105,14 +105,14 @@ public class Panel
         }
 
         var useRoutes = module.Config.UseNorthernAethernetRoutes;
-        if (ImGui.Checkbox("按 vnav 实际路程选择直走或魔路传送", ref useRoutes))
+        if (ImGui.Checkbox("按导航网格实际路程选择直走或魔路传送", ref useRoutes))
         {
             module.Config.UseNorthernAethernetRoutes = useRoutes;
             module.PluginConfig.Save();
         }
 
         var returnToStandby = module.Config.ReturnToNorthernStandby;
-        if (ImGui.Checkbox("CE/FATE 结束后立即返回出生大水晶", ref returnToStandby))
+        if (ImGui.Checkbox("事件结束后立即返回出生大水晶", ref returnToStandby))
         {
             module.Config.ReturnToNorthernStandby = returnToStandby;
             module.PluginConfig.Save();
@@ -151,7 +151,7 @@ public class Panel
         northernRouteMenuOrder = Math.Max(1, northernRouteMenuOrder);
         ImGui.SetNextItemWidth(160f);
         ImGui.InputInt(
-            "旧版 Lifestream 目的地 ID（保留，不再使用）##IllegalNorthernRouteId",
+            "旧版传送插件目的地编号（保留，不再使用）##IllegalNorthernRouteId",
             ref northernRouteDestinationId
         );
         northernRouteDestinationId = Math.Max(0, northernRouteDestinationId);
@@ -192,9 +192,9 @@ public class Panel
 
             ImGui.SameLine();
             ImGui.TextDisabled(
-                $"顺序={route.TeleportMenuOrder}, Base={route.BaseId}, "
-                + $"Custom={route.ActiveCustomAetheryteId}, "
-                + $"ID={route.LifestreamDestinationId}"
+                $"顺序={route.TeleportMenuOrder}，基础编号={route.BaseId}，"
+                + $"自定义以太水晶编号={route.ActiveCustomAetheryteId}，"
+                + $"旧版编号={route.LifestreamDestinationId}"
             );
         }
 
@@ -222,7 +222,7 @@ public class Panel
             }
         }
 
-        ImGui.TextDisabled($"JSON: {module.Plugin.NorthernRoutes.Path}");
+        ImGui.TextDisabled($"数据文件：{module.Plugin.NorthernRoutes.Path}");
         ImGui.TreePop();
     }
 
@@ -243,8 +243,8 @@ public class Panel
             )
             .ToList();
         var label = ZoneData.IsInNorthernExpedition()
-            ? $"北岛 CE ({recorded.Count})##IllegalRecordedCE"
-            : $"已实时记录的 CE ({recorded.Count})##IllegalRecordedCE";
+            ? $"北岛紧急遭遇战（{recorded.Count}）##IllegalRecordedCE"
+            : $"已实时记录的紧急遭遇战（{recorded.Count}）##IllegalRecordedCE";
         if (recorded.Count == 0
             || !ImGui.TreeNode(label))
         {
@@ -272,8 +272,8 @@ public class Panel
             )
             .ToList();
         var label = ZoneData.IsInNorthernExpedition()
-            ? $"北岛 FATE ({recorded.Count})##IllegalRecordedFATE"
-            : $"已实时记录的 FATE ({recorded.Count})##IllegalRecordedFATE";
+            ? $"北岛临危受命（{recorded.Count}）##IllegalRecordedFATE"
+            : $"已实时记录的临危受命（{recorded.Count}）##IllegalRecordedFATE";
         if (recorded.Count == 0
             || !ImGui.TreeNode(label))
         {

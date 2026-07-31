@@ -2,54 +2,54 @@
   "modules": {
     "fates": {
       "config": {
-        "title": "FATE设置",
+        "title": "临危受命设置",
         "log_spawn": {
-          "label": "出现/消失时输出聊天信息",
-          "tooltip": "当FATE出现或消失时发送提示消息"
+          "label": "出现或消失时输出聊天信息",
+          "tooltip": "当临危受命出现或消失时发送提示消息"
         },
         "alert_all": {
-          "label": "所有FATE出现时通知",
-          "tooltip": "当任何FATE出现时播放提示音"
+          "label": "所有临危受命出现时通知",
+          "tooltip": "当任何临危受命出现时播放提示音"
         },
         "alert_azurite": {
-          "label": "通知蓝色半魂晶的FATE",
-          "tooltip": "当掉落蓝色半魂晶的FATE出现时播放提示音"
+          "label": "通知掉落蓝色半魂晶的临危受命",
+          "tooltip": "当掉落蓝色半魂晶的临危受命出现时播放提示音"
         },
         "alert_verdigris": {
-          "label": "通知绿色半魂晶的FATE",
-          "tooltip": "当掉落绿色半魂晶的FATE出现时播放提示音"
+          "label": "通知掉落绿色半魂晶的临危受命",
+          "tooltip": "当掉落绿色半魂晶的临危受命出现时播放提示音"
         },
         "alert_malachite": {
-          "label": "通知青色半魂晶的FATE",
-          "tooltip": "当掉落青色半魂晶的FATE出现时播放提示音"
+          "label": "通知掉落青色半魂晶的临危受命",
+          "tooltip": "当掉落青色半魂晶的临危受命出现时播放提示音"
         },
         "alert_realgar": {
-          "label": "通知红色半魂晶的FATE",
-          "tooltip": "当掉落红色半魂晶的FATE出现时播放提示音"
+          "label": "通知掉落红色半魂晶的临危受命",
+          "tooltip": "当掉落红色半魂晶的临危受命出现时播放提示音"
         },
         "alert_caput_mortuum": {
-          "label": "通知紫色半魂晶的FATE",
-          "tooltip": "当掉落紫色半魂晶的FATE出现时播放提示音"
+          "label": "通知掉落紫色半魂晶的临危受命",
+          "tooltip": "当掉落紫色半魂晶的临危受命出现时播放提示音"
         },
         "alert_orpiment": {
-          "label": "通知黄色半魂晶的FATE",
-          "tooltip": "当掉落黄色半魂晶的FATE出现时播放提示音"
+          "label": "通知掉落黄色半魂晶的临危受命",
+          "tooltip": "当掉落黄色半魂晶的临危受命出现时播放提示音"
         },
         "show_pot_fate_timer_on_dtr": {
-          "label": "在服务器信息栏显示Pot FATE计时器",
-          "tooltip": "根据同一章节内上一只Pot FATE的出现时间，显示下一只的30分钟倒计时"
+          "label": "在服务器信息栏显示魔法罐事件计时器",
+          "tooltip": "根据同一章节内上一次魔法罐临危受命的出现时间，显示下一次的30分钟倒计时"
         }
       },
       "panel": {
-        "title": "FATE",
-        "none": "当前无活跃的FATE",
+        "title": "临危受命",
+        "none": "当前没有进行中的临危受命",
         "estimated": "预计",
         "pot_tracker": {
-          "title": "Pot FATE（30分钟循环）",
+          "title": "魔法罐临危受命（30分钟循环）",
           "active": "进行中：{0}",
           "next": "下一只：{0}，剩余 {1}",
           "ready": "可刷新：{0}",
-          "unknown": "尚未观测到本次循环的Pot FATE"
+          "unknown": "尚未观测到本次循环的魔法罐临危受命"
         }
       }
     }

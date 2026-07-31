@@ -30,8 +30,8 @@ public sealed class PotFateTracker : IDisposable
         this.module = module;
         module.Config.PotFateSpawnTimes ??= [];
 
-        dtrEntry = Svc.DtrBar.Get("BOCCHI Pot FATE Timer");
-        dtrEntry.Tooltip = "BOCCHI · Pot FATE 30-minute tracker";
+        dtrEntry = Svc.DtrBar.Get("BOCCHI 魔法罐临危受命计时器");
+        dtrEntry.Tooltip = "BOCCHI · 魔法罐临危受命 30 分钟计时器";
         dtrEntry.Shown = false;
 
         Svc.Framework.Update += OnFrameworkUpdate;
@@ -149,20 +149,20 @@ public sealed class PotFateTracker : IDisposable
 
         if (Snapshot.IsActive)
         {
-            dtrEntry.Text = $"Pot FATE: Active · {Snapshot.FateName}";
+            dtrEntry.Text = $"魔法罐临危受命：进行中 · {Snapshot.FateName}";
         }
         else if (!Snapshot.HasHistory)
         {
-            dtrEntry.Text = "Pot FATE: --:--";
+            dtrEntry.Text = "魔法罐临危受命：--:--";
         }
         else if (Snapshot.Remaining > TimeSpan.Zero)
         {
             dtrEntry.Text =
-                $"Pot FATE: {Snapshot.Remaining:mm\\:ss} · {Snapshot.FateName}";
+                $"魔法罐临危受命：{Snapshot.Remaining:mm\\:ss} · {Snapshot.FateName}";
         }
         else
         {
-            dtrEntry.Text = $"Pot FATE: Ready · {Snapshot.FateName}";
+            dtrEntry.Text = $"魔法罐临危受命：可触发 · {Snapshot.FateName}";
         }
 
         dtrEntry.Shown = true;
@@ -185,7 +185,7 @@ public sealed class PotFateTracker : IDisposable
         }
         catch
         {
-            return string.IsNullOrWhiteSpace(fallback) ? $"FATE {fateId}" : fallback;
+            return string.IsNullOrWhiteSpace(fallback) ? $"临危受命 {fateId}" : fallback;
         }
     }
 

@@ -8,16 +8,16 @@ public class ChainManagerPanel : Panel
 {
     public override string GetName()
     {
-        return "Chain Manager";
+        return "任务链管理器";
     }
 
     public override void Render(DebugModule module)
     {
-        OcelotUi.Title("Chain Manager:");
+        OcelotUi.Title("任务链管理器：");
         OcelotUi.Indent(() =>
         {
             var instances = ChainManager.Queues;
-            OcelotUi.Title("# of instances:");
+            OcelotUi.Title("实例数量：");
             ImGui.SameLine();
             ImGui.TextUnformatted(instances.Count.ToString());
 
@@ -32,15 +32,15 @@ public class ChainManagerPanel : Panel
                 OcelotUi.Indent(() =>
                 {
                     var current = pair.Value.CurrentChain!;
-                    OcelotUi.Title("Current Chain:");
+                    OcelotUi.Title("当前任务链：");
                     ImGui.SameLine();
                     ImGui.TextUnformatted(current.Name);
 
-                    OcelotUi.Title("Progress:");
+                    OcelotUi.Title("进度：");
                     ImGui.SameLine();
                     ImGui.TextUnformatted($"{current.Progress * 100}%");
 
-                    OcelotUi.Title("Queued Chains:");
+                    OcelotUi.Title("排队中的任务链：");
                     ImGui.SameLine();
                     ImGui.TextUnformatted(pair.Value.QueueCount.ToString());
                 });

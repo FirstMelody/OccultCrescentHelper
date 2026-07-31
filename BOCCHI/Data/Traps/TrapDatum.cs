@@ -32,6 +32,6 @@ public class TrapDatum(Vector3 position, OccultObjectType type)
             }
         }
 
-        throw new Exception("Trap group not found");
+        throw new Exception("未找到陷阱组");
     }
 }

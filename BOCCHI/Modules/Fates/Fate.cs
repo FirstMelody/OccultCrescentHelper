@@ -12,7 +12,7 @@ public class Fate
 
     public uint Id { get; }
 
-    public string Name { get; private set; } = "Unknown Fate";
+    public string Name { get; private set; } = "未知临危受命";
 
     public float Radius { get; private set; }
 

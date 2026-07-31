@@ -32,7 +32,7 @@ public struct EventData
             {
                 Id = 1962,
                 Type = EventType.Fate,
-                InternalName = "Rough Waters",
+                InternalName = "涌潮海魔————纳木",
                 Demiatma = Enums.Demiatma.Azurite,
                 StartPosition = new Vector3(162.00f, 56.00f, 676.00f),
             }
@@ -43,7 +43,7 @@ public struct EventData
             {
                 Id = 1963,
                 Type = EventType.Fate,
-                InternalName = "The Golden Guardian",
+                InternalName = "古代怪石——金色石碑",
                 Demiatma = Enums.Demiatma.Azurite,
                 StartPosition = new Vector3(373.20f, 70.00f, 486.00f),
             }
@@ -54,7 +54,7 @@ public struct EventData
             {
                 Id = 1964,
                 Type = EventType.Fate,
-                InternalName = "King of the Crescent",
+                InternalName = "悲鸣收集者——罗普罗斯",
                 Demiatma = Enums.Demiatma.Orpiment,
                 StartPosition = new Vector3(-226.10f, 116.38f, 254.00f),
             }
@@ -65,7 +65,7 @@ public struct EventData
             {
                 Id = 1965,
                 Type = EventType.Fate,
-                InternalName = "The Winged Terror",
+                InternalName = "甲板清扫者——巨大鸟",
                 Demiatma = Enums.Demiatma.Realgar,
                 Aethernet = Enums.Aethernet.TheWanderersHaven,
                 StartPosition = new Vector3(-548.50f, 3.00f, -595.00f),
@@ -77,7 +77,7 @@ public struct EventData
             {
                 Id = 1966,
                 Type = EventType.Fate,
-                InternalName = "An Unending Duty",
+                InternalName = "神罚石兽——西西弗斯",
                 Demiatma = Enums.Demiatma.Malachite,
                 StartPosition = new Vector3(-223.10f, 107.00f, 36.00f),
             }
@@ -88,7 +88,7 @@ public struct EventData
             {
                 Id = 1967,
                 Type = EventType.Fate,
-                InternalName = "Brain Drain",
+                InternalName = "进化的毒鸟——高等魔鸟",
                 Demiatma = Enums.Demiatma.Realgar,
                 Aethernet = Enums.Aethernet.CrystallizedCaverns,
                 StartPosition = new Vector3(-48.10f, 111.76f, -320.00f),
@@ -100,7 +100,7 @@ public struct EventData
             {
                 Id = 1968,
                 Type = EventType.Fate,
-                InternalName = "A Delicate Balance",
+                InternalName = "湿度猎手——除湿之火",
                 Demiatma = Enums.Demiatma.Verdigris,
                 StartPosition = new Vector3(-370.00f, 75.00f, 650.00f),
             }
@@ -111,7 +111,7 @@ public struct EventData
             {
                 Id = 1969,
                 Type = EventType.Fate,
-                InternalName = "Sworn to Soil",
+                InternalName = "土壤守护者——癫泥怪",
                 Demiatma = Enums.Demiatma.Verdigris,
                 StartPosition = new Vector3(-589.10f, 96.50f, 333.00f),
             }
@@ -122,7 +122,7 @@ public struct EventData
             {
                 Id = 1970,
                 Type = EventType.Fate,
-                InternalName = "A Prying Eye",
+                InternalName = "监视之瞳——岛屿监视者",
                 Demiatma = Enums.Demiatma.Azurite,
                 StartPosition = new Vector3(-71.00f, 71.31f, 557.00f),
             }
@@ -133,7 +133,7 @@ public struct EventData
             {
                 Id = 1971,
                 Type = EventType.Fate,
-                InternalName = "Fatal Allure",
+                InternalName = "美丽的咒杀者——执行者",
                 Demiatma = Enums.Demiatma.Orpiment,
                 StartPosition = new Vector3(79.00f, 97.86f, 278.00f),
             }
@@ -144,7 +144,7 @@ public struct EventData
             {
                 Id = 1972,
                 Type = EventType.Fate,
-                InternalName = "Serving Darkness",
+                InternalName = "凶恶使魔————生命收割者",
                 Demiatma = Enums.Demiatma.CaputMortuum,
                 StartPosition = new Vector3(413.00f, 96.00f, -13.00f),
             }
@@ -155,7 +155,7 @@ public struct EventData
             {
                 Id = 1976,
                 Type = EventType.Fate,
-                InternalName = "Persistent Pots",
+                InternalName = "幸福的魔法罐",
                 Demiatma = Enums.Demiatma.Orpiment,
                 Note = MonsterNote.PersistentPots,
                 StartPosition = new Vector3(200.00f, 111.73f, -215.00f),
@@ -167,7 +167,7 @@ public struct EventData
             {
                 Id = 1977,
                 Type = EventType.Fate,
-                InternalName = "Pleading Pots",
+                InternalName = "瑟瑟发抖的魔法罐",
                 Demiatma = Enums.Demiatma.Verdigris,
                 Note = MonsterNote.PersistentPots,
                 StartPosition = new Vector3(-481.00f, 75.00f, 528.00f),
@@ -183,7 +183,7 @@ public struct EventData
             {
                 Id = 48,
                 Type = EventType.CriticalEncounter,
-                InternalName = "The Forked Tower: Blood",
+                InternalName = "两歧塔 血之塔",
             }
         },
         {
@@ -192,7 +192,7 @@ public struct EventData
             {
                 Id = 33,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Scourge of the Mind",
+                InternalName = "脑髓爱好者——夺心魔",
                 Demiatma = Enums.Demiatma.Azurite,
                 Aethernet = Enums.Aethernet.Eldergrowth,
             }
@@ -203,7 +203,7 @@ public struct EventData
             {
                 Id = 34,
                 Type = EventType.CriticalEncounter,
-                InternalName = "The Black Regiment",
+                InternalName = "黑色连队",
                 Demiatma = Enums.Demiatma.Orpiment,
                 Soulshard = SoulShard.Ranger,
                 Note = MonsterNote.BlackChocobos,
@@ -216,7 +216,7 @@ public struct EventData
             {
                 Id = 35,
                 Type = EventType.CriticalEncounter,
-                InternalName = "The Unbridled",
+                InternalName = "愤怒的人造人——新月狂战士",
                 Demiatma = Enums.Demiatma.Azurite,
                 Soulshard = SoulShard.Berserker,
                 Note = MonsterNote.CrescentBerserker,
@@ -229,7 +229,7 @@ public struct EventData
             {
                 Id = 36,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Crawling Death",
+                InternalName = "潜影撕裂者——死亡爪",
                 Demiatma = Enums.Demiatma.Azurite,
                 Aethernet = Enums.Aethernet.Eldergrowth,
             }
@@ -240,7 +240,7 @@ public struct EventData
             {
                 Id = 37,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Calamity Bound",
+                InternalName = "挣脱封印的大妖异——回廊恶魔",
                 Demiatma = Enums.Demiatma.Verdigris,
                 Note = MonsterNote.CloisterDemon,
                 Aethernet = Enums.Aethernet.Stonemarsh,
@@ -252,7 +252,7 @@ public struct EventData
             {
                 Id = 38,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Trial by Claw",
+                InternalName = "拟造使魔——水晶龙",
                 Demiatma = Enums.Demiatma.Malachite,
                 Aethernet = Enums.Aethernet.CrystallizedCaverns,
             }
@@ -263,7 +263,7 @@ public struct EventData
             {
                 Id = 39,
                 Type = EventType.CriticalEncounter,
-                InternalName = "From Times Bygone",
+                InternalName = "双极的造物——神秘土偶",
                 Demiatma = Enums.Demiatma.Malachite,
                 Note = MonsterNote.MythicIdol,
                 Aethernet = Enums.Aethernet.Stonemarsh,
@@ -275,7 +275,7 @@ public struct EventData
             {
                 Id = 40,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Company of Stone",
+                InternalName = "石制骑士团",
                 Demiatma = Enums.Demiatma.CaputMortuum,
                 Aethernet = Enums.Aethernet.BaseCamp,
             }
@@ -286,7 +286,7 @@ public struct EventData
             {
                 Id = 41,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Shark Attack",
+                InternalName = "传说中的鲨鱼——尼姆瓣齿鲨",
                 Demiatma = Enums.Demiatma.Realgar,
                 Note = MonsterNote.NymianPotaladus,
                 Aethernet = Enums.Aethernet.TheWanderersHaven,
@@ -298,7 +298,7 @@ public struct EventData
             {
                 Id = 42,
                 Type = EventType.CriticalEncounter,
-                InternalName = "On the Hunt",
+                InternalName = "双足狮人——跃立狮",
                 Demiatma = Enums.Demiatma.CaputMortuum,
                 Soulshard = SoulShard.Oracle,
                 Aethernet = Enums.Aethernet.Eldergrowth,
@@ -310,7 +310,7 @@ public struct EventData
             {
                 Id = 43,
                 Type = EventType.CriticalEncounter,
-                InternalName = "With Extreme Prejudice",
+                InternalName = "防卫指令",
                 Demiatma = Enums.Demiatma.Realgar,
                 Aethernet = Enums.Aethernet.TheWanderersHaven,
             }
@@ -321,7 +321,7 @@ public struct EventData
             {
                 Id = 44,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Noise Complaint",
+                InternalName = "厌鸟巨兽——进化加鲁拉",
                 Demiatma = Enums.Demiatma.Orpiment,
                 Aethernet = Enums.Aethernet.BaseCamp,
             }
@@ -332,7 +332,7 @@ public struct EventData
             {
                 Id = 45,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Cursed Concern",
+                InternalName = "贩卖诅咒的商贩——金钱龟",
                 Demiatma = Enums.Demiatma.Realgar,
                 Note = MonsterNote.TradeTortoise,
                 Aethernet = Enums.Aethernet.TheWanderersHaven,
@@ -344,7 +344,7 @@ public struct EventData
             {
                 Id = 46,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Eternal Watch",
+                InternalName = "城塞守卫——复原狮像",
                 Demiatma = Enums.Demiatma.CaputMortuum,
                 Aethernet = Enums.Aethernet.Eldergrowth,
             }
@@ -355,7 +355,7 @@ public struct EventData
             {
                 Id = 47,
                 Type = EventType.CriticalEncounter,
-                InternalName = "Flame of Dusk",
+                InternalName = "昏暗妖魂——鬼火苗",
                 Demiatma = Enums.Demiatma.Malachite,
                 Aethernet = Enums.Aethernet.CrystallizedCaverns,
             }

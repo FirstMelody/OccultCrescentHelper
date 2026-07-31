@@ -16,7 +16,7 @@ public class EnemyPanel : Panel
 {
     public override string GetName()
     {
-        return "Nearby Enemies";
+        return "附近敌人";
     }
 
     private List<IGameObject> enemies = [];
@@ -31,46 +31,46 @@ public class EnemyPanel : Panel
                 {
                     OcelotUi.Indent(() =>
                     {
-                        ImGui.Text($"Name: {enemy.Name.TextValue}");
-                        ImGui.Text($"GameObjectId: {enemy.GameObjectId:X}");
-                        ImGui.Text($"EntityId: {enemy.EntityId:X}");
-                        ImGui.Text($"BaseId: {enemy.BaseId}");
-                        ImGui.Text($"OwnerId: {enemy.OwnerId}");
-                        ImGui.Text($"ObjectIndex: {enemy.ObjectIndex}");
-                        ImGui.Text($"ObjectKind: {enemy.ObjectKind}");
-                        ImGui.Text($"SubKind: {enemy.SubKind}");
-                        ImGui.Text($"Position: {enemy.Position}");
-                        ImGui.Text($"Rotation: {enemy.Rotation}");
-                        ImGui.Text($"HitboxRadius: {enemy.HitboxRadius}");
-                        ImGui.Text($"YalmDistanceX: {enemy.YalmDistanceX}");
-                        ImGui.Text($"YalmDistanceZ: {enemy.YalmDistanceZ}");
-                        ImGui.Text($"IsDead: {enemy.IsDead}");
-                        ImGui.Text($"IsTargetable: {enemy.IsTargetable}");
-                        ImGui.Text($"TargetObjectId: {enemy.TargetObjectId:X}");
+                        ImGui.Text($"名称：{enemy.Name.TextValue}");
+                        ImGui.Text($"游戏对象编号：{enemy.GameObjectId:X}");
+                        ImGui.Text($"实体编号：{enemy.EntityId:X}");
+                        ImGui.Text($"基础编号：{enemy.BaseId}");
+                        ImGui.Text($"所有者编号：{enemy.OwnerId}");
+                        ImGui.Text($"对象索引：{enemy.ObjectIndex}");
+                        ImGui.Text($"对象类型：{enemy.ObjectKind}");
+                        ImGui.Text($"子类型：{enemy.SubKind}");
+                        ImGui.Text($"位置：{enemy.Position}");
+                        ImGui.Text($"朝向：{enemy.Rotation}");
+                        ImGui.Text($"碰撞半径：{enemy.HitboxRadius}");
+                        ImGui.Text($"横向距离：{enemy.YalmDistanceX}");
+                        ImGui.Text($"纵向距离：{enemy.YalmDistanceZ}");
+                        ImGui.Text($"是否死亡：{enemy.IsDead}");
+                        ImGui.Text($"是否可选中：{enemy.IsTargetable}");
+                        ImGui.Text($"目标对象编号：{enemy.TargetObjectId:X}");
 
                         if (enemy.TargetObject is { } target)
                         {
-                            ImGui.Text($"TargetObject: {target.Name.TextValue} ({target.GameObjectId:X})");
+                            ImGui.Text($"目标对象：{target.Name.TextValue}（{target.GameObjectId:X}）");
                         }
                         else
                         {
-                            ImGui.Text($"TargetObject: None");
+                            ImGui.Text("目标对象：无");
                         }
 
-                        ImGui.Text($"IsValid(): {enemy.IsValid()}");
-                        ImGui.Text($"Address: 0x{enemy.Address.ToInt64():X}");
+                        ImGui.Text($"是否有效：{enemy.IsValid()}");
+                        ImGui.Text($"内存地址：0x{enemy.Address.ToInt64():X}");
 
 
                         var battleChara = (BattleChara*)enemy.Address;
 
 
-                        ImGui.Text($"LayoutId: {battleChara->LayoutId}");
-                        ImGui.Text($"Level: {battleChara->ForayInfo.Level}");
+                        ImGui.Text($"布局编号：{battleChara->LayoutId}");
+                        ImGui.Text($"等级：{battleChara->ForayInfo.Level}");
 
                         var distance = Player.DistanceTo(enemy.Position);
                         if (distance <= 30f)
                         {
-                            if (ImGui.Button("Target"))
+                            if (ImGui.Button("选中"))
                             {
                                 Svc.Targets.Target = enemy;
                             }

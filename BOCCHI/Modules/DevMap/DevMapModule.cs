@@ -222,22 +222,22 @@ public class DevMapModule : Module
         }
 
         ImGui.Separator();
-        ImGui.TextUnformatted("dev 地图标注");
+        ImGui.TextUnformatted("开发者地图标注");
         ImGui.Separator();
 
         if (!PluginConfig.DevModeEnabled)
         {
-            ImGui.TextWrapped("dev 模式未开启。点击窗口标题栏的代码图标，或使用 /bocchi dev on。");
+            ImGui.TextWrapped("开发者模式未开启。点击窗口标题栏的代码图标，或使用 /bocchi dev on。");
             return;
         }
 
         var territoryId = Svc.ClientState.TerritoryType;
         var mapId = Svc.ClientState.MapId;
-        ImGui.TextUnformatted($"当前 Territory: {territoryId} / Map: {mapId}");
+        ImGui.TextUnformatted($"当前区域编号：{territoryId} / 地图编号：{mapId}");
 
         ImGui.Separator();
-        ImGui.TextUnformatted("Forked Tower: Blood dev 采集");
-        if (ImGui.Button("将当前 Territory 设为 Forked Tower: Blood##DevMap_BindTower"))
+        ImGui.TextUnformatted("两歧塔 血之塔开发者采集");
+        if (ImGui.Button("将当前区域设为两歧塔 血之塔##DevMap_BindTower"))
         {
             BindCurrentTerritoryAsForkedTowerBlood();
         }
@@ -245,25 +245,25 @@ public class DevMapModule : Module
         if (PluginConfig.ForceForkedTowerBloodTerritory)
         {
             ImGui.SameLine();
-            if (ImGui.Button("停止强制 Tower 判定##DevMap_StopForceTower"))
+            if (ImGui.Button("停止强制塔区判定##DevMap_StopForceTower"))
             {
                 PluginConfig.ForceForkedTowerBloodTerritory = false;
                 PluginConfig.Save();
-                Svc.Chat.Print("[BOCCHI] 已停止强制 Tower 判定，恢复塔内状态检测。");
+                Svc.Chat.Print("[BOCCHI] 已停止强制塔区判定，恢复塔内状态检测。");
             }
         }
 
         if (PluginConfig.ForkedTowerBloodTerritoryId > 0)
         {
             ImGui.TextDisabled(
-                $"Tower 绑定：Territory={PluginConfig.ForkedTowerBloodTerritoryId}, "
-                + $"Map={PluginConfig.ForkedTowerBloodMapId}, "
-                + $"强制={PluginConfig.ForceForkedTowerBloodTerritory}"
+                $"两歧塔绑定：区域编号={PluginConfig.ForkedTowerBloodTerritoryId}，"
+                + $"地图编号={PluginConfig.ForkedTowerBloodMapId}，"
+                + $"强制判定={PluginConfig.ForceForkedTowerBloodTerritory}"
             );
         }
 
         if (ZoneData.IsInForkedTower()
-            && ImGui.Button("开始新的 Tower 塔次##DevMap_NewTowerRun"))
+            && ImGui.Button("开始新的塔次##DevMap_NewTowerRun"))
         {
             GetModule<ForkedTowerModule>().StartNewRun();
             Svc.Chat.Print("[BOCCHI] 已清空本塔次雷发现/排除状态并开始新塔次。");
@@ -273,13 +273,13 @@ public class DevMapModule : Module
             record.TerritoryId == territoryId && record.MapId == mapId
         );
         ImGui.TextDisabled(
-            $"本 Territory/Map 已记录 {towerObjectCount} 个 Tower EventObj；"
-            + "记录 BaseId、XYZ、HitboxRadius 和已知机制半径。"
+            $"当前区域和地图已记录 {towerObjectCount} 个塔内事件对象；"
+            + "记录基础编号、三维坐标、碰撞半径和已知机制半径。"
         );
-        ImGui.TextDisabled($"Tower JSON: {ForkedTowerEventObjPath}");
+        ImGui.TextDisabled($"塔内事件对象数据文件：{ForkedTowerEventObjPath}");
 
         var showTowerObjects = PluginConfig.ShowForkedTowerEventObjectsOnMap;
-        if (ImGui.Checkbox("在大地图显示 Tower EventObj##DevMap_ShowTowerObjects", ref showTowerObjects))
+        if (ImGui.Checkbox("在大地图显示塔内事件对象##DevMap_ShowTowerObjects", ref showTowerObjects))
         {
             PluginConfig.ShowForkedTowerEventObjectsOnMap = showTowerObjects;
             PluginConfig.Save();
@@ -287,7 +287,7 @@ public class DevMapModule : Module
 
         var showUnknownTowerObjects = PluginConfig.ShowUnknownForkedTowerEventObjectsOnMap;
         if (ImGui.Checkbox(
-                "包含未知/非雷 EventObj##DevMap_ShowUnknownTowerObjects",
+                "包含未知或非雷事件对象##DevMap_ShowUnknownTowerObjects",
                 ref showUnknownTowerObjects
             ))
         {
@@ -296,7 +296,7 @@ public class DevMapModule : Module
         }
 
         var showTowerLabels = PluginConfig.ShowForkedTowerEventObjLabels;
-        if (ImGui.Checkbox("显示 BaseId 后四位##DevMap_ShowTowerLabels", ref showTowerLabels))
+        if (ImGui.Checkbox("显示基础编号后四位##DevMap_ShowTowerLabels", ref showTowerLabels))
         {
             PluginConfig.ShowForkedTowerEventObjLabels = showTowerLabels;
             PluginConfig.Save();
@@ -336,7 +336,7 @@ public class DevMapModule : Module
             group.TerritoryId == territoryId && group.MapId == mapId
         );
         ImGui.TextDisabled(
-            $"本 Territory/Map 有 {customGroupCount} 个自定义雷组；"
+            $"当前区域和地图有 {customGroupCount} 个自定义雷组；"
             + "候选点与互斥组现在只读，由插件自动采集和判定。"
         );
         ImGui.TextDisabled(
@@ -347,13 +347,13 @@ public class DevMapModule : Module
         {
             ImGui.TextColored(
                 new Vector4(1f, 0.72f, 0.24f, 1f),
-                "当前为强制采集模式：此 Territory 内观察到的全部 EventObj 都会记录，离塔后请停止强制判定。"
+                "当前为强制采集模式：此区域内观察到的全部事件对象都会记录，离塔后请停止强制判定。"
             );
         }
 
         if (ZoneData.IsInSouthHorn())
         {
-            ImGui.TextColored(new Vector4(1f, 0.78f, 0.25f, 1f), "当前区域：南征之章 dev 功能测试");
+            ImGui.TextColored(new Vector4(1f, 0.78f, 0.25f, 1f), "当前区域：南征之章开发者功能测试");
         }
         else if (ZoneData.IsInNorthernExpedition())
         {
@@ -365,13 +365,13 @@ public class DevMapModule : Module
         }
 
         ImGui.TextWrapped(
-            "附近出现的宝箱、好运胡萝卜、调查地点、静止未交战怪物、FATE 和 CE "
+            "附近出现的宝箱、好运胡萝卜、调查地点、静止未交战怪物、临危受命和紧急遭遇战"
             + "都会自动记录。地图点位为只读，不再提供手动新增、改类型或删除。"
         );
         var count = markerFile.Markers.Count(m => m.TerritoryId == territoryId);
         ImGui.TextDisabled($"本区域已自动保存 {count} 个只读标注。");
-        ImGui.TextDisabled("打开大地图后，可用地图上方的 Linker 风格图标按钮分别开关各类标记。");
-        ImGui.TextDisabled($"JSON: {MarkerPath}");
+        ImGui.TextDisabled("打开大地图后，可用地图上方的分类图标按钮分别开关各类标记。");
+        ImGui.TextDisabled($"地图标注数据文件：{MarkerPath}");
 
         if (lastError != null)
         {
@@ -390,7 +390,7 @@ public class DevMapModule : Module
         var mapId = Svc.ClientState.MapId;
         if (Svc.Objects.LocalPlayer == null || territoryId == 0 || mapId == 0)
         {
-            lastError = "无法取得当前玩家、Territory 或 Map。";
+            lastError = "无法取得当前玩家、区域编号或地图编号。";
             return;
         }
 
@@ -403,8 +403,8 @@ public class DevMapModule : Module
         lastError = null;
 
         Svc.Chat.Print(
-            $"[BOCCHI] 已将当前区域强制设置为 Forked Tower: Blood："
-            + $"Territory={territoryId}, Map={mapId}。"
+            $"[BOCCHI] 已将当前区域强制设置为“两歧塔 血之塔”："
+            + $"区域编号={territoryId}，地图编号={mapId}。"
         );
     }
 
@@ -577,7 +577,7 @@ public class DevMapModule : Module
         var summary = string.Join("、", recorded
             .GroupBy(label => label)
             .Select(group => group.Count() == 1 ? group.Key : $"{group.Key}×{group.Count()}"));
-        Svc.Chat.Print($"[BOCCHI] dev 自动记录：{summary}");
+        Svc.Chat.Print($"[BOCCHI] 开发者模式自动记录：{summary}");
     }
 
     private unsafe void AutoScanReadOnlyMapContent()
@@ -927,8 +927,8 @@ public class DevMapModule : Module
                     .Select(baseId => baseId.ToString())
             );
             Svc.Chat.Print(
-                $"[BOCCHI] Tower dev 自动记录 {recordedBaseIds.Count} 个 EventObj；"
-                + $"BaseId: {baseIdSummary}"
+                $"[BOCCHI] 两歧塔开发者采集自动记录了 {recordedBaseIds.Count} 个事件对象；"
+                + $"基础编号：{baseIdSummary}"
             );
         }
     }
@@ -1279,7 +1279,7 @@ public class DevMapModule : Module
             || player == null
             || Vector3.Distance(player.Position, investigation.Position) > 30f)
         {
-            lastError = "请先选中 30 yalms 内的调查地点对象。";
+            lastError = "请先选中 30 亚姆内的调查地点对象。";
             return;
         }
 
@@ -1295,7 +1295,7 @@ public class DevMapModule : Module
         {
             lastError = null;
             Svc.Chat.Print(
-                $"[BOCCHI] 已记录调查地点：BaseId={investigation.BaseId}，"
+                $"[BOCCHI] 已记录调查地点：基础编号={investigation.BaseId}，"
                 + $"坐标=({investigation.Position.X:F2}, {investigation.Position.Y:F2}, "
                 + $"{investigation.Position.Z:F2})。"
             );
@@ -1309,7 +1309,7 @@ public class DevMapModule : Module
         var mapId = Svc.ClientState.MapId;
         if (player == null || territoryId == 0 || mapId == 0)
         {
-            lastError = "无法取得当前玩家坐标、Territory 或 Map。";
+            lastError = "无法取得当前玩家坐标、区域编号或地图编号。";
             return;
         }
 
@@ -1403,7 +1403,7 @@ public class DevMapModule : Module
         catch (Exception ex)
         {
             forkedTowerEventObjFile = new ForkedTowerEventObjFile();
-            lastError = $"读取 Tower EventObj JSON 失败：{ex.Message}";
+            lastError = $"读取塔内事件对象数据文件失败：{ex.Message}";
             Svc.Log.Error(ex, "Failed to load Forked Tower EventObj records");
         }
     }
@@ -1423,7 +1423,7 @@ public class DevMapModule : Module
         }
         catch (Exception ex)
         {
-            lastError = $"保存 Tower EventObj JSON 失败：{ex.Message}";
+            lastError = $"保存塔内事件对象数据文件失败：{ex.Message}";
             Svc.Log.Error(ex, "Failed to save Forked Tower EventObj records");
             return false;
         }
@@ -1510,7 +1510,7 @@ public class DevMapModule : Module
         catch (Exception ex)
         {
             markerFile = new DevMapMarkerFile();
-            lastError = $"读取标注 JSON 失败：{ex.Message}";
+            lastError = $"读取地图标注数据文件失败：{ex.Message}";
             Svc.Log.Error(ex, "Failed to load dev map markers");
         }
     }
@@ -1706,7 +1706,7 @@ public class DevMapModule : Module
         }
         catch (Exception ex)
         {
-            lastError = $"保存标注 JSON 失败：{ex.Message}";
+            lastError = $"保存地图标注数据文件失败：{ex.Message}";
             Svc.Log.Error(ex, "Failed to save dev map markers");
             return false;
         }
@@ -1908,9 +1908,7 @@ public class DevMapModule : Module
                 marker,
                 screenPosition,
                 uiScale,
-                false,
-                false,
-                "Eureka Linker 权威点位（只读）"
+                false
             );
         }
 
@@ -2492,10 +2490,10 @@ public class DevMapModule : Module
         var runCount = candidate.SourceRecord?.ObservedRunIds.Count ?? 0;
         ImGui.SetTooltip(
             $"{(candidate.Type == ForkedTowerEventObjType.BigTrap ? "大雷" : "小雷")} · {state}\n"
-            + $"编组: {group}（{candidate.ObservedInGroup}/{candidate.MaxActive}）\n"
-            + $"坐标: ({candidate.Position.X:F2}, {candidate.Position.Y:F2}, {candidate.Position.Z:F2})\n"
-            + $"机制半径: {candidate.MechanicRadius:F1}\n"
-            + $"累计观察塔次: {runCount}"
+            + $"编组：{group}（{candidate.ObservedInGroup}/{candidate.MaxActive}）\n"
+            + $"坐标：({candidate.Position.X:F2}, {candidate.Position.Y:F2}, {candidate.Position.Z:F2})\n"
+            + $"机制半径：{candidate.MechanicRadius:F1}\n"
+            + $"累计观察塔次：{runCount}"
             + (hasConflict ? "\n警告：本次观察数超过编组上限" : "")
         );
     }
@@ -2554,8 +2552,8 @@ public class DevMapModule : Module
 
         var badge = record.Type switch
         {
-            ForkedTowerEventObjType.SmallTrap => "S",
-            ForkedTowerEventObjType.BigTrap => "B",
+            ForkedTowerEventObjType.SmallTrap => "小",
+            ForkedTowerEventObjType.BigTrap => "大",
             _ => $"{record.BaseId % 10000:D4}",
         };
         if (PluginConfig.ShowForkedTowerEventObjLabels
@@ -2594,15 +2592,21 @@ public class DevMapModule : Module
             ? $"{record.MechanicRadius.Value:F1}"
             : "未知";
         var objectName = string.IsNullOrWhiteSpace(record.Name) ? "（无名）" : record.Name;
+        var typeText = record.Type switch
+        {
+            ForkedTowerEventObjType.SmallTrap => "小雷",
+            ForkedTowerEventObjType.BigTrap => "大雷",
+            _ => "未知或非雷",
+        };
         ImGui.SetTooltip(
             $"{objectName}\n"
-            + $"BaseId: {record.BaseId}\n"
-            + $"类型: {record.Type}\n"
-            + $"Territory/Map: {record.TerritoryId}/{record.MapId}\n"
-            + $"坐标: ({record.X:F2}, {record.Y:F2}, {record.Z:F2})\n"
-            + $"HitboxRadius: {record.HitboxRadius:F2}\n"
-            + $"机制半径: {mechanicRadiusText}\n"
-            + $"TowerRun: {record.TowerRunId}"
+            + $"基础编号：{record.BaseId}\n"
+            + $"类型：{typeText}\n"
+            + $"区域编号/地图编号：{record.TerritoryId}/{record.MapId}\n"
+            + $"坐标：({record.X:F2}, {record.Y:F2}, {record.Z:F2})\n"
+            + $"碰撞半径：{record.HitboxRadius:F2}\n"
+            + $"机制半径：{mechanicRadiusText}\n"
+            + $"塔次编号：{record.TowerRunId}"
         );
     }
 
@@ -2680,7 +2684,7 @@ public class DevMapModule : Module
                     | ImGuiWindowFlags.NoSavedSettings
                     | ImGuiWindowFlags.NoScrollbar
                     | ImGuiWindowFlags.NoFocusOnAppearing;
-        if (!ImGui.Begin("Linker 地图标记###BOCCHI_DevMapFilters", flags))
+        if (!ImGui.Begin("地图标记筛选###BOCCHI_DevMapFilters", flags))
         {
             ImGui.End();
             return;
@@ -3025,9 +3029,9 @@ public class DevMapModule : Module
         {
             var name = string.IsNullOrWhiteSpace(marker.Name) ? marker.Kind : marker.Name;
             ImGui.SetTooltip(
-                $"{name}\n社区共享雷点（只读）\n"
+                $"{name}\n"
                 + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
-                + $"机制半径: {mechanicRadiusYalms:F1}"
+                + $"机制半径：{mechanicRadiusYalms:F1}"
             );
         }
     }
@@ -3038,8 +3042,7 @@ public class DevMapModule : Module
         Vector2 center,
         float uiScale,
         bool editable = true,
-        bool shared = false,
-        string? readOnlySource = null
+        bool shared = false
     )
     {
         if (marker.Type == DevMarkerType.Monster)
@@ -3101,15 +3104,10 @@ public class DevMapModule : Module
         var markerName = string.IsNullOrWhiteSpace(marker.Name)
             ? GetLabel(marker.Type)
             : marker.Name;
-        var eventId = marker.EventId > 0 ? $"\nEventId: {marker.EventId}" : "";
-        var sourceLabel = readOnlySource
-                          ?? (shared
-                              ? "社区共享标记（只读）"
-                              : "只读自动采集标记");
+        var eventId = marker.EventId > 0 ? $"\n事件编号：{marker.EventId}" : "";
         ImGui.SetTooltip(
             $"{markerName}{eventId}\n"
-            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
-            + sourceLabel
+            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})"
         );
 
     }
@@ -3147,9 +3145,8 @@ public class DevMapModule : Module
 
         drawList.AddRect(min, max, 0xFFFFFFFF, 2f, ImDrawFlags.None, 1f);
         ImGui.SetTooltip(
-            $"{label}\nBaseId: {marker.BaseId}\n"
-            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})\n"
-            + (shared ? "社区共享怪物点（只读）" : "本地记录的静止未交战怪物")
+            $"{label}\n基础编号：{marker.BaseId}\n"
+            + $"({marker.X:F2}, {marker.Y:F2}, {marker.Z:F2})"
         );
     }
 
@@ -3411,12 +3408,8 @@ public class DevMapModule : Module
         }
 
         drawList.AddRect(min, max, 0xFFFFFFFF, 2f, ImDrawFlags.None, 1f);
-        var source = cluster.Members.Any(member => member.Shared)
-            ? "含社区共享统计（只读）"
-            : "本地记录的静止未交战怪物";
         return $"{string.Join("\n", labels)}\n"
-               + $"区域中心: ({cluster.Center.X:F2}, {cluster.Center.Y:F2}, {cluster.Center.Z:F2})\n"
-               + source;
+               + $"区域中心：({cluster.Center.X:F2}, {cluster.Center.Y:F2}, {cluster.Center.Z:F2})";
     }
 
     private static void DrawForegroundTooltip(
@@ -3591,13 +3584,13 @@ public class DevMapModule : Module
                 _ => "未知/非雷",
             };
             ImGui.TextUnformatted($"类型：{typeLabel}");
-            ImGui.TextUnformatted($"BaseId：{record.BaseId}");
+            ImGui.TextUnformatted($"基础编号：{record.BaseId}");
             ImGui.TextUnformatted(
                 $"坐标：({record.X:F2}, {record.Y:F2}, {record.Z:F2})"
             );
             ImGui.TextUnformatted($"累计观察塔次：{record.ObservedRunIds.Count}");
             ImGui.Separator();
-            ImGui.TextUnformatted("将此 Territory 内相同 BaseId 批量识别为：");
+            ImGui.TextUnformatted("将此区域内相同基础编号批量识别为：");
             if (ImGui.Button("小雷（7）##DevMap_ClassifySmallTrap"))
             {
                 ChangeTowerBaseIdType(record, ForkedTowerEventObjType.SmallTrap);
@@ -3619,7 +3612,7 @@ public class DevMapModule : Module
 
             if (record.Type == ForkedTowerEventObjType.Unknown)
             {
-                ImGui.TextDisabled("先将此 BaseId 识别为小雷或大雷，之后才能编组。");
+                ImGui.TextDisabled("先将此基础编号识别为小雷或大雷，之后才能编组。");
             }
             else if (currentGroup != null)
             {
@@ -3933,8 +3926,8 @@ public class DevMapModule : Module
             DevMarkerType.FortuneCarrotChest => "好运胡萝卜",
             DevMarkerType.PotChest => "罐子宝箱",
             DevMarkerType.RerollChest => "重抽宝箱",
-            DevMarkerType.Fate => "FATE",
-            DevMarkerType.CriticalEncounter => "CE",
+            DevMarkerType.Fate => "临危受命",
+            DevMarkerType.CriticalEncounter => "紧急遭遇战",
             DevMarkerType.InvestigationLocation => "调查地点",
             DevMarkerType.UnknownChest => "未识别宝箱",
             DevMarkerType.Monster => "静止未交战怪物",
@@ -3952,8 +3945,8 @@ public class DevMapModule : Module
             DevMarkerType.FortuneCarrotChest => "胡",
             DevMarkerType.PotChest => "罐",
             DevMarkerType.RerollChest => "重",
-            DevMarkerType.Fate => "F",
-            DevMarkerType.CriticalEncounter => "CE",
+            DevMarkerType.Fate => "危",
+            DevMarkerType.CriticalEncounter => "急",
             DevMarkerType.InvestigationLocation => "查",
             DevMarkerType.UnknownChest => "箱",
             DevMarkerType.Monster => "怪",
