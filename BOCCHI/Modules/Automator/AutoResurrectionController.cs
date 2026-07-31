@@ -9,6 +9,8 @@ namespace BOCCHI.Modules.Automator;
 
 internal sealed class AutoResurrectionController
 {
+    private const string TemplateWildcard = "\u001F";
+
     private DateTime acceptAt = DateTime.MinValue;
     private nint promptAddress;
     private bool promptHandled;
@@ -91,7 +93,8 @@ internal sealed class AutoResurrectionController
 
         var prompt = NormalizePrompt(addon->PromptText->NodeText.ToString());
         var addonSheet = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Addon>();
-        return MatchesAddonText(addonSheet, prompt, 112)
+        return MatchesAddonText(addonSheet, prompt, 3787)
+               || MatchesAddonText(addonSheet, prompt, 112)
                || MatchesAddonText(addonSheet, prompt, 113);
     }
 
@@ -102,11 +105,52 @@ internal sealed class AutoResurrectionController
     )
     {
         return addonSheet.TryGetRow(rowId, out var row)
-               && string.Equals(
+               && MatchesTemplate(
                    prompt,
-                   NormalizePrompt(row.Text.ToString()),
-                   StringComparison.Ordinal
+                   NormalizePrompt(
+                       row.Text.ExtractText(
+                           useSoftHyphen: false,
+                           macroPlaceholder: TemplateWildcard
+                       )
+                   )
                );
+    }
+
+    private static bool MatchesTemplate(string value, string template)
+    {
+        var fragments = template.Split(
+            TemplateWildcard,
+            StringSplitOptions.None
+        );
+        if (fragments.Length == 1)
+        {
+            return string.Equals(value, template, StringComparison.Ordinal);
+        }
+
+        if (!value.StartsWith(fragments[0], StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var position = fragments[0].Length;
+        for (var index = 1; index < fragments.Length - 1; index++)
+        {
+            var fragmentPosition = value.IndexOf(
+                fragments[index],
+                position,
+                StringComparison.Ordinal
+            );
+            if (fragmentPosition < 0)
+            {
+                return false;
+            }
+
+            position = fragmentPosition + fragments[index].Length;
+        }
+
+        var suffix = fragments[^1];
+        return value.Length >= position + suffix.Length
+               && value.EndsWith(suffix, StringComparison.Ordinal);
     }
 
     private static string NormalizePrompt(string text)
