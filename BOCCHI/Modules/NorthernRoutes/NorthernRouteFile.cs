@@ -5,7 +5,7 @@ namespace BOCCHI.Modules.NorthernRoutes;
 
 public sealed class NorthernRouteFile
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     public List<NorthernAethernetRoute> Routes { get; set; } = [];
 
@@ -21,6 +21,8 @@ public sealed class NorthernAethernetRoute
     public uint MapId { get; set; }
 
     public string Name { get; set; } = "";
+
+    public int TeleportMenuOrder { get; set; }
 
     public uint LifestreamDestinationId { get; set; }
 

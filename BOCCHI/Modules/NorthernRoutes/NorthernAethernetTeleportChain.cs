@@ -125,7 +125,8 @@ public sealed class NorthernAethernetTeleportChain(
                     }
 
                     var selectionState = TryFindDestination(
-                            destinationRoute.Name,
+                            sourceRoute,
+                            destinationRoute,
                             out var addon,
                             out var callback,
                             out var callbackRequired
@@ -151,7 +152,9 @@ public sealed class NorthernAethernetTeleportChain(
                         teleportIssued = true;
                         teleportRequestedAt = DateTime.UtcNow;
                         DebugLog.Debug(
-                            $"Northern magic route: 已选择 {destinationRoute.Name}"
+                            $"Northern magic route: 已按面板顺序 "
+                            + $"{destinationRoute.TeleportMenuOrder} 选择 "
+                            + $"{destinationRoute.Name}"
                         );
                         return true;
                     }
@@ -164,7 +167,8 @@ public sealed class NorthernAethernetTeleportChain(
                     failed = true;
                     DebugLog.Debug(
                         $"Northern magic route: 传送面板中未找到 "
-                        + $"{destinationRoute.Name}; "
+                        + $"{destinationRoute.Name}"
+                        + $"（顺序 {destinationRoute.TeleportMenuOrder}）; "
                         + $"可见条目={DescribeVisibleDestinations()}"
                     );
                     return true;
@@ -317,12 +321,6 @@ public sealed class NorthernAethernetTeleportChain(
 
             foreach (var entry in master.Entries)
             {
-                if (!entry.Text.Contains("传送网", StringComparison.Ordinal)
-                    && !entry.Text.Contains("魔路", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
                 selectedEntry = entry.Text;
                 entry.Select();
                 return true;
@@ -339,7 +337,8 @@ public sealed class NorthernAethernetTeleportChain(
     }
 
     private static unsafe DestinationSelectionState TryFindDestination(
-        string destinationName,
+        NorthernAethernetRoute sourceRoute,
+        NorthernAethernetRoute destinationRoute,
         out AtkUnitBase* addon,
         out uint callback,
         out bool callbackRequired
@@ -354,6 +353,26 @@ public sealed class NorthernAethernetTeleportChain(
 
         try
         {
+            var reader = new TelepotTownReader(addon);
+            if (TryGetDestinationIndex(
+                    reader,
+                    sourceRoute,
+                    destinationRoute,
+                    out var destinationIndex
+                ))
+            {
+                callback = reader.GetDestinationCallback(destinationIndex);
+                callbackRequired = true;
+                DebugLog.Debug(
+                    $"Northern magic route: 面板顺序 "
+                    + $"{destinationRoute.TeleportMenuOrder} -> "
+                    + $"entry={destinationIndex}, callback={callback}, "
+                    + $"visibleName={reader.GetDestinationName(destinationIndex)}"
+                );
+                return DestinationSelectionState.Activated;
+            }
+
+            var destinationName = destinationRoute.Name;
             var visibleSelection = TrySelectVisibleDestination(
                 addon,
                 destinationName,
@@ -365,7 +384,6 @@ public sealed class NorthernAethernetTeleportChain(
                 return visibleSelection;
             }
 
-            var reader = new TelepotTownReader(addon);
             var count = (int)Math.Min(reader.NumEntries, 20);
             for (var index = 0; index < count; index++)
             {
@@ -396,6 +414,42 @@ public sealed class NorthernAethernetTeleportChain(
         }
 
         return DestinationSelectionState.NotFound;
+    }
+
+    private static bool TryGetDestinationIndex(
+        TelepotTownReader reader,
+        NorthernAethernetRoute sourceRoute,
+        NorthernAethernetRoute destinationRoute,
+        out int destinationIndex
+    )
+    {
+        destinationIndex = -1;
+        if (destinationRoute.TeleportMenuOrder <= 0)
+        {
+            return false;
+        }
+
+        var entryCount = (int)Math.Min(reader.NumEntries, 20);
+        var knownDestinationCount =
+            NorthernRouteDefaults.Routes.Count(route =>
+                route.TerritoryId == destinationRoute.TerritoryId
+            )
+            + NorthernRouteDefaults.SourceOnlyRoutes.Count(route =>
+                route.TerritoryId == destinationRoute.TerritoryId
+            );
+        destinationIndex = destinationRoute.TeleportMenuOrder - 1;
+
+        // Some aethernet panels omit the shard currently being used. The
+        // remaining rows retain their normal relative order.
+        if (entryCount == knownDestinationCount - 1
+            && sourceRoute.TeleportMenuOrder > 0
+            && sourceRoute.TeleportMenuOrder
+            < destinationRoute.TeleportMenuOrder)
+        {
+            destinationIndex--;
+        }
+
+        return destinationIndex >= 0 && destinationIndex < entryCount;
     }
 
     private static unsafe DestinationSelectionState TrySelectVisibleDestination(

@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using BOCCHI.Modules.NorthernRoutes;
 using BOCCHI.Data;
 using Dalamud.Bindings.ImGui;
 using ECommons.DalamudServices;
@@ -11,8 +10,8 @@ namespace BOCCHI.Modules.Automator;
 public class Panel
 {
     private string northernRouteName = "";
+    private int northernRouteMenuOrder = 1;
     private int northernRouteDestinationId;
-    private string northernStandbyName = "默认蹲守点";
     private Guid? selectedNorthernRouteId;
     private Guid? pendingNorthernRouteDeleteId;
 
@@ -100,7 +99,7 @@ public class Panel
     public void DrawNorthernRouteControls(AutomatorModule module)
     {
         if (!ZoneData.IsInNorthernExpedition()
-            || !ImGui.TreeNode("北岛魔路与事件后蹲守##IllegalNorthernRoutes"))
+            || !ImGui.TreeNode("北岛魔路##IllegalNorthernRoutes"))
         {
             return;
         }
@@ -113,7 +112,7 @@ public class Panel
         }
 
         var returnToStandby = module.Config.ReturnToNorthernStandby;
-        if (ImGui.Checkbox("CE/FATE 结束后返回蹲守点", ref returnToStandby))
+        if (ImGui.Checkbox("CE/FATE 结束后立即返回出生大水晶", ref returnToStandby))
         {
             module.Config.ReturnToNorthernStandby = returnToStandby;
             module.PluginConfig.Save();
@@ -134,9 +133,9 @@ public class Panel
 
         ImGui.Separator();
         ImGui.TextWrapped(
-            "先与魔路共鸣并站在魔路旁（最好选中它），填写游戏传送面板"
-            + "中的准确名称后记录。随后从别处传送到该魔路，"
-            + "选中记录并保存落地坐标。"
+            "内置北岛魔路按游戏传送面板顺序选择，不依赖客户端语言。"
+            + "新增记录时，请填写面板顺序；名称仅用于显示和旧记录回退。"
+            + "随后从别处传送到该魔路，选中记录并保存落地坐标。"
         );
         ImGui.SetNextItemWidth(240f);
         ImGui.InputText(
@@ -146,6 +145,12 @@ public class Panel
         );
         ImGui.SetNextItemWidth(160f);
         ImGui.InputInt(
+            "传送面板顺序（从 1 开始）##IllegalNorthernRouteMenuOrder",
+            ref northernRouteMenuOrder
+        );
+        northernRouteMenuOrder = Math.Max(1, northernRouteMenuOrder);
+        ImGui.SetNextItemWidth(160f);
+        ImGui.InputInt(
             "旧版 Lifestream 目的地 ID（保留，不再使用）##IllegalNorthernRouteId",
             ref northernRouteDestinationId
         );
@@ -153,10 +158,12 @@ public class Panel
         if (ImGui.Button("记录当前已共鸣魔路##IllegalNorthernRecordRoute")
             && module.RecordCurrentNorthernRoute(
                 northernRouteName,
+                northernRouteMenuOrder,
                 (uint)northernRouteDestinationId
             ))
         {
             northernRouteName = "";
+            northernRouteMenuOrder++;
             northernRouteDestinationId = 0;
         }
 
@@ -185,7 +192,8 @@ public class Panel
 
             ImGui.SameLine();
             ImGui.TextDisabled(
-                $"Base={route.BaseId}, Custom={route.ActiveCustomAetheryteId}, "
+                $"顺序={route.TeleportMenuOrder}, Base={route.BaseId}, "
+                + $"Custom={route.ActiveCustomAetheryteId}, "
                 + $"ID={route.LifestreamDestinationId}"
             );
         }
@@ -212,32 +220,6 @@ public class Panel
             {
                 pendingNorthernRouteDeleteId = selectedId;
             }
-        }
-
-        ImGui.Separator();
-        ImGui.SetNextItemWidth(220f);
-        ImGui.InputText(
-            "蹲守点名称##IllegalNorthernStandbyName",
-            ref northernStandbyName,
-            128
-        );
-        if (ImGui.Button("将当前位置设置为事件后蹲守点"))
-        {
-            module.SetCurrentNorthernStandbyPoint(northernStandbyName);
-        }
-
-        var standby = module.GetNorthernStandbyPoint();
-        if (standby != null)
-        {
-            var position = NorthernRouteStore.GetPosition(standby);
-            ImGui.TextDisabled(
-                $"当前蹲守点：{standby.Name} "
-                + $"({position.X:F1}, {position.Y:F1}, {position.Z:F1})"
-            );
-        }
-        else
-        {
-            ImGui.TextDisabled("尚未设置蹲守点；首个魔路记录后会自动用其位置。");
         }
 
         ImGui.TextDisabled($"JSON: {module.Plugin.NorthernRoutes.Path}");

@@ -249,12 +249,11 @@ public class AutomatorModule : Module
         return Plugin.NorthernRoutes.GetRoutes(Svc.ClientState.TerritoryType);
     }
 
-    public NorthernStandbyPoint? GetNorthernStandbyPoint()
-    {
-        return Plugin.NorthernRoutes.GetStandbyPoint(Svc.ClientState.TerritoryType);
-    }
-
-    public bool RecordCurrentNorthernRoute(string requestedName, uint destinationId)
+    public bool RecordCurrentNorthernRoute(
+        string requestedName,
+        int teleportMenuOrder,
+        uint destinationId
+    )
     {
         if (!ZoneData.IsInNorthernExpedition() || Svc.Objects.LocalPlayer == null)
         {
@@ -305,6 +304,7 @@ public class AutomatorModule : Module
             Svc.ClientState.TerritoryType,
             Svc.ClientState.MapId,
             name,
+            teleportMenuOrder,
             destinationId,
             activeCustomId,
             candidate?.BaseId ?? 0,
@@ -333,23 +333,6 @@ public class AutomatorModule : Module
 
         Svc.Chat.Print($"[BOCCHI] 已记录“{route.Name}”的传送到达坐标。");
         return true;
-    }
-
-    public void SetCurrentNorthernStandbyPoint(string name)
-    {
-        if (!ZoneData.IsInNorthernExpedition() || Svc.Objects.LocalPlayer == null)
-        {
-            Svc.Chat.PrintError("[BOCCHI] 请在北征之章内设置蹲守点。");
-            return;
-        }
-
-        Plugin.NorthernRoutes.SetStandbyPoint(
-            Svc.ClientState.TerritoryType,
-            Svc.ClientState.MapId,
-            name,
-            Player.Position
-        );
-        Svc.Chat.Print("[BOCCHI] 已将当前位置设置为 Illegal Mode 事件结束蹲守点。");
     }
 
     public void SetNorthernRouteEnabled(Guid routeId, bool enabled)

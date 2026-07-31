@@ -41,19 +41,13 @@ public sealed class NorthernRouteStore
             return file.Routes
                 .Where(route => route.TerritoryId == territoryId)
                 .Select(Clone)
-                .OrderBy(route => route.Name)
+                .OrderBy(route =>
+                    route.TeleportMenuOrder > 0
+                        ? route.TeleportMenuOrder
+                        : int.MaxValue
+                )
+                .ThenBy(route => route.Name)
                 .ToList();
-        }
-    }
-
-    public NorthernStandbyPoint? GetStandbyPoint(uint territoryId)
-    {
-        lock (sync)
-        {
-            var point = file.StandbyPoints.FirstOrDefault(entry =>
-                entry.TerritoryId == territoryId
-            );
-            return point == null ? null : Clone(point);
         }
     }
 
@@ -61,6 +55,7 @@ public sealed class NorthernRouteStore
         uint territoryId,
         uint mapId,
         string name,
+        int teleportMenuOrder,
         uint destinationId,
         uint activeCustomAetheryteId,
         uint baseId,
@@ -88,6 +83,7 @@ public sealed class NorthernRouteStore
 
             route.MapId = mapId;
             route.Name = name.Trim();
+            route.TeleportMenuOrder = Math.Max(0, teleportMenuOrder);
             route.LifestreamDestinationId = destinationId;
             route.ActiveCustomAetheryteId = activeCustomAetheryteId;
             route.BaseId = baseId;
@@ -95,19 +91,6 @@ public sealed class NorthernRouteStore
             route.InteractionY = interactionPosition.Y;
             route.InteractionZ = interactionPosition.Z;
             route.Enabled = true;
-
-            if (!file.StandbyPoints.Any(entry => entry.TerritoryId == territoryId))
-            {
-                file.StandbyPoints.Add(new NorthernStandbyPoint
-                {
-                    TerritoryId = territoryId,
-                    MapId = mapId,
-                    Name = $"{route.Name}蹲守点",
-                    X = interactionPosition.X,
-                    Y = interactionPosition.Y,
-                    Z = interactionPosition.Z,
-                });
-            }
 
             SaveLocked();
             return Clone(route);
@@ -163,33 +146,6 @@ public sealed class NorthernRouteStore
         }
     }
 
-    public void SetStandbyPoint(
-        uint territoryId,
-        uint mapId,
-        string name,
-        Vector3 position
-    )
-    {
-        lock (sync)
-        {
-            var point = file.StandbyPoints.FirstOrDefault(entry =>
-                entry.TerritoryId == territoryId
-            );
-            if (point == null)
-            {
-                point = new NorthernStandbyPoint { TerritoryId = territoryId };
-                file.StandbyPoints.Add(point);
-            }
-
-            point.MapId = mapId;
-            point.Name = string.IsNullOrWhiteSpace(name) ? "默认蹲守点" : name.Trim();
-            point.X = position.X;
-            point.Y = position.Y;
-            point.Z = position.Z;
-            SaveLocked();
-        }
-    }
-
     public static Vector3 GetInteractionPosition(NorthernAethernetRoute route)
     {
         return new Vector3(route.InteractionX, route.InteractionY, route.InteractionZ);
@@ -198,11 +154,6 @@ public sealed class NorthernRouteStore
     public static Vector3 GetArrivalPosition(NorthernAethernetRoute route)
     {
         return new Vector3(route.ArrivalX, route.ArrivalY, route.ArrivalZ);
-    }
-
-    public static Vector3 GetPosition(NorthernStandbyPoint point)
-    {
-        return new Vector3(point.X, point.Y, point.Z);
     }
 
     private void Load()
@@ -221,6 +172,7 @@ public sealed class NorthernRouteStore
                     File.ReadAllText(path),
                     jsonOptions
                 ) ?? new NorthernRouteFile();
+                file.Version = Math.Max(file.Version, 2);
                 file.Routes ??= [];
                 file.StandbyPoints ??= [];
             }
@@ -268,6 +220,7 @@ public sealed class NorthernRouteStore
                 {
                     route.MapId = builtIn.MapId;
                     route.Name = builtIn.Name;
+                    route.TeleportMenuOrder = builtIn.TeleportMenuOrder;
                     route.BaseId = builtIn.BaseId;
                     route.InteractionX = builtIn.InteractionX;
                     route.InteractionY = builtIn.InteractionY;
@@ -278,29 +231,6 @@ public sealed class NorthernRouteStore
                     route.HasArrival = true;
                     changed = true;
                 }
-            }
-
-            foreach (var territoryRoutes in NorthernRouteDefaults.Routes
-                         .GroupBy(route => route.TerritoryId))
-            {
-                if (file.StandbyPoints.Any(point =>
-                        point.TerritoryId == territoryRoutes.Key
-                    ))
-                {
-                    continue;
-                }
-
-                var defaultRoute = territoryRoutes.First();
-                file.StandbyPoints.Add(new NorthernStandbyPoint
-                {
-                    TerritoryId = defaultRoute.TerritoryId,
-                    MapId = defaultRoute.MapId,
-                    Name = $"{defaultRoute.Name}蹲守点",
-                    X = defaultRoute.InteractionX,
-                    Y = defaultRoute.InteractionY,
-                    Z = defaultRoute.InteractionZ,
-                });
-                changed = true;
             }
 
             if (changed)
@@ -317,6 +247,7 @@ public sealed class NorthernRouteStore
     {
         return route.MapId == builtIn.MapId
                && string.Equals(route.Name, builtIn.Name, StringComparison.Ordinal)
+               && route.TeleportMenuOrder == builtIn.TeleportMenuOrder
                && route.BaseId == builtIn.BaseId
                && route.InteractionX.Equals(builtIn.InteractionX)
                && route.InteractionY.Equals(builtIn.InteractionY)
@@ -344,6 +275,7 @@ public sealed class NorthernRouteStore
             TerritoryId = route.TerritoryId,
             MapId = route.MapId,
             Name = route.Name,
+            TeleportMenuOrder = route.TeleportMenuOrder,
             LifestreamDestinationId = route.LifestreamDestinationId,
             ActiveCustomAetheryteId = route.ActiveCustomAetheryteId,
             BaseId = route.BaseId,
@@ -359,16 +291,4 @@ public sealed class NorthernRouteStore
         };
     }
 
-    private static NorthernStandbyPoint Clone(NorthernStandbyPoint point)
-    {
-        return new NorthernStandbyPoint
-        {
-            TerritoryId = point.TerritoryId,
-            MapId = point.MapId,
-            Name = point.Name,
-            X = point.X,
-            Y = point.Y,
-            Z = point.Z,
-        };
-    }
 }

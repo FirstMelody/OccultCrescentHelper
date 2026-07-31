@@ -273,18 +273,6 @@ public sealed class NorthernRoutePlanner
             return builtInSource;
         }
 
-        var standby = store.GetStandbyPoint(territoryId);
-        if (standby != null)
-        {
-            var standbyPosition = NorthernRouteStore.GetPosition(standby);
-            return recordedRoutes
-                .OrderBy(route => Vector3.Distance(
-                    NorthernRouteStore.GetInteractionPosition(route),
-                    standbyPosition
-                ))
-                .FirstOrDefault();
-        }
-
         return recordedRoutes
             .OrderBy(route => route.Name, StringComparer.Ordinal)
             .FirstOrDefault();

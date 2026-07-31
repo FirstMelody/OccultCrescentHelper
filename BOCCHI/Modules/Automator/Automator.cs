@@ -22,9 +22,6 @@ namespace BOCCHI.Modules.Automator;
 
 public class Automator
 {
-    private static readonly TimeSpan NorthernStandbyGracePeriod =
-        TimeSpan.FromSeconds(45);
-
     private static bool IsChainActive
     {
         get => ChainManager.Queues.Count > 0;
@@ -33,9 +30,7 @@ public class Automator
     public Activity? Activity { get; private set; } = null;
 
     private int idleTime = 0;
-    private bool returnToNorthernStandbyPending;
     private bool northernImmediateReturnInProgress;
-    private DateTime northernStandbyEligibleAt = DateTime.MinValue;
     private DateTime nextNorthernCandidateWarmupAt = DateTime.MinValue;
 
     public void PostUpdate(AutomatorModule module, IFramework framework)
@@ -78,7 +73,6 @@ public class Automator
             }
 
             Activity = null;
-            returnToNorthernStandbyPending = false;
         }
 
         if (Activity == null)
@@ -109,7 +103,6 @@ public class Automator
                 if (Activity != null)
                 {
                     module.Debug($"Resuming running activity: {Activity.GetName()}");
-                    WarmNorthernStandbyPlan(module);
                 }
 
                 return;
@@ -122,7 +115,6 @@ public class Automator
                 if (Activity != null)
                 {
                     module.Debug($"Resuming running activity: {Activity.GetName()}");
-                    WarmNorthernStandbyPlan(module);
                 }
 
                 return;
@@ -205,14 +197,11 @@ public class Automator
                 $"Selected activity: {Activity.GetName()} "
                 + $"(type={Activity.data.Type}, id={Activity.data.Id})"
             );
-            returnToNorthernStandbyPending = false;
-            WarmNorthernStandbyPlan(module);
             return;
         }
 
         if (ZoneData.IsInNorthernExpedition())
         {
-            TryReturnToNorthernStandby(module, vnav, lifestream);
             return;
         }
 
@@ -312,9 +301,7 @@ public class Automator
     {
         Activity = null;
         idleTime = 0;
-        returnToNorthernStandbyPending = false;
         northernImmediateReturnInProgress = false;
-        northernStandbyEligibleAt = DateTime.MinValue;
         nextNorthernCandidateWarmupAt = DateTime.MinValue;
     }
 
@@ -338,14 +325,10 @@ public class Automator
                 "Activity finished near the source crystal; skipping Return"
             );
             module.NorthernRoutePlanner.MarkReturnedToSource();
-            returnToNorthernStandbyPending = true;
-            northernStandbyEligibleAt =
-                DateTime.UtcNow + NorthernStandbyGracePeriod;
             return;
         }
 
         northernImmediateReturnInProgress = true;
-        returnToNorthernStandbyPending = false;
         var wasMounted = false;
         NorthernReturnState? returnState = null;
         module.Debug(
@@ -392,39 +375,8 @@ public class Automator
                 }
 
                 northernImmediateReturnInProgress = false;
-                returnToNorthernStandbyPending = true;
-                northernStandbyEligibleAt =
-                    DateTime.UtcNow + NorthernStandbyGracePeriod;
             });
         Plugin.Chain.Submit(() => chain);
-    }
-
-    private static void WarmNorthernStandbyPlan(AutomatorModule module)
-    {
-        if (!ZoneData.IsInNorthernExpedition()
-            || !module.Config.ReturnToNorthernStandby)
-        {
-            return;
-        }
-
-        var standby = module.GetNorthernStandbyPoint();
-        if (standby == null)
-        {
-            return;
-        }
-
-        // Standby routing previously started its vnav cost queries only after
-        // the event ended. Those queries take several seconds, leaving the
-        // player idle after AI was disabled. The plan cache does not depend on
-        // the live player position, so prepare the exact same plan while the
-        // event is still running.
-        _ = module.NorthernRoutePlanner.PlanAsync(
-            Player.Position,
-            NorthernRouteStore.GetPosition(standby),
-            Svc.ClientState.TerritoryType,
-            0,
-            EventType.Fate
-        );
     }
 
     private void WarmNextNorthernActivityPlan(AutomatorModule module)
@@ -505,91 +457,4 @@ public class Automator
         }
     }
 
-    private void TryReturnToNorthernStandby(
-        AutomatorModule module,
-        VNavmesh vnav,
-        Lifestream lifestream
-    )
-    {
-        if (!returnToNorthernStandbyPending)
-        {
-            return;
-        }
-
-        // Stay at the source crystal briefly after an event. New North events
-        // often appear within a few seconds; immediately teleporting to a
-        // custom standby point would force another Return as soon as one does.
-        // Activity selection runs before this method, so a newly enabled event
-        // always wins during the grace period.
-        if (DateTime.UtcNow < northernStandbyEligibleAt)
-        {
-            return;
-        }
-
-        if (!module.Config.ReturnToNorthernStandby)
-        {
-            returnToNorthernStandbyPending = false;
-            return;
-        }
-
-        var standby = module.GetNorthernStandbyPoint();
-        if (standby == null)
-        {
-            module.Debug("Northern standby return skipped: no standby point");
-            returnToNorthernStandbyPending = false;
-            return;
-        }
-
-        var destination = NorthernRouteStore.GetPosition(standby);
-        if (Player.DistanceTo(destination) <= 6f)
-        {
-            returnToNorthernStandbyPending = false;
-            return;
-        }
-
-        var data = new EventData
-        {
-            Id = 0,
-            Type = EventType.Fate,
-            InternalName = standby.Name,
-            StartPosition = destination,
-            Radius = 6f,
-        };
-        var startedAt = DateTime.UtcNow;
-        module.Debug(
-            $"Starting Northern standby return: {standby.Name} "
-            + $"({destination.X:F1}, {destination.Y:F1}, {destination.Z:F1})"
-        );
-        var chain = Chain.Create("Illegal:NorthStandby")
-            .ConditionalThen(
-                _ => module.Config.ShouldToggleAiProvider,
-                _ => module.Config.AiProvider.Off()
-            )
-            .Then(new NorthernRouteNavigationChain(
-                module.NorthernRoutePlanner,
-                vnav,
-                destination,
-                data
-            ))
-            .Then(new TaskManagerTask(
-                () =>
-                {
-                    if (Player.DistanceTo(destination) <= 6f)
-                    {
-                        vnav.Stop();
-                        return true;
-                    }
-
-                    return DateTime.UtcNow - startedAt > TimeSpan.FromSeconds(3)
-                           && !vnav.IsRunning();
-                },
-                new TaskManagerConfiguration
-                {
-                    TimeLimitMS = 180000,
-                    ShowError = false,
-                }
-            ))
-            .OnFinally(() => returnToNorthernStandbyPending = false);
-        Plugin.Chain.Submit(() => chain);
-    }
 }
