@@ -1,16 +1,14 @@
 using System;
+using System.Linq;
 using BOCCHI.Data;
 using ECommons.DalamudServices;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace BOCCHI.Modules.Automator;
 
 internal sealed class AutoResurrectionController
 {
-    private const uint InvalidEntityId = 0xE0000000;
-
     private DateTime acceptAt = DateTime.MinValue;
     private nint promptAddress;
     private bool promptHandled;
@@ -25,21 +23,15 @@ internal sealed class AutoResurrectionController
             return;
         }
 
-        var reviveAgent = AgentRevive.Instance();
-        if (!HasIncomingResurrection(reviveAgent))
-        {
-            Reset();
-            return;
-        }
-
         var addon = Svc.GameGui.GetAddonByName<AddonSelectYesno>(
             "SelectYesno",
             1
         );
-        if (addon == null || !addon->AtkUnitBase.IsVisible)
+        if (addon == null
+            || !addon->AtkUnitBase.IsVisible
+            || !IsResurrectionPrompt(addon))
         {
-            acceptAt = DateTime.MinValue;
-            promptAddress = 0;
+            Reset();
             return;
         }
 
@@ -57,9 +49,6 @@ internal sealed class AutoResurrectionController
             );
             DebugLog.Debug(
                 "Auto resurrection: detected revive prompt; "
-                + $"source={reviveAgent->ResurrectingPlayerId}, "
-                + $"remaining={reviveAgent->ResurrectionTimeLeft}, "
-                + $"state={reviveAgent->ReviveState}, "
                 + $"accepting after {config.AutoAcceptResurrectionDelay:F1}s"
             );
             return;
@@ -70,18 +59,17 @@ internal sealed class AutoResurrectionController
             return;
         }
 
-        // Re-check both the dedicated revive agent and the current addon
-        // immediately before firing the generic SelectYesno "yes" callback.
-        // This prevents accepting unrelated confirmations while the player is dead.
-        reviveAgent = AgentRevive.Instance();
+        // Re-check the localized prompt text immediately before firing the
+        // generic SelectYesno "yes" callback. Addon rows 112 and 113 are the
+        // resurrection prompts; the death Return prompt is the distinct row 111.
         addon = Svc.GameGui.GetAddonByName<AddonSelectYesno>(
             "SelectYesno",
             1
         );
-        if (!HasIncomingResurrection(reviveAgent)
-            || addon == null
+        if (addon == null
             || !addon->AtkUnitBase.IsVisible
             || (nint)addon != promptAddress
+            || !IsResurrectionPrompt(addon)
             || !Player.IsDead)
         {
             Reset();
@@ -94,19 +82,36 @@ internal sealed class AutoResurrectionController
         DebugLog.Debug("Auto resurrection: accepted revive prompt");
     }
 
-    private static unsafe bool HasIncomingResurrection(AgentRevive* reviveAgent)
+    private static unsafe bool IsResurrectionPrompt(AddonSelectYesno* addon)
     {
-        if (reviveAgent == null
-            || !reviveAgent->IsAgentActive()
-            || reviveAgent->Revive == null)
+        if (addon == null || addon->PromptText == null)
         {
             return false;
         }
 
-        var sourceId = reviveAgent->ResurrectingPlayerId;
-        return sourceId is not 0 and not InvalidEntityId
-               && reviveAgent->ResurrectionTimeLeft > 0
-               && reviveAgent->Revive->Timer > 0f;
+        var prompt = NormalizePrompt(addon->PromptText->NodeText.ToString());
+        var addonSheet = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Addon>();
+        return MatchesAddonText(addonSheet, prompt, 112)
+               || MatchesAddonText(addonSheet, prompt, 113);
+    }
+
+    private static bool MatchesAddonText(
+        Lumina.Excel.ExcelSheet<Lumina.Excel.Sheets.Addon> addonSheet,
+        string prompt,
+        uint rowId
+    )
+    {
+        return addonSheet.TryGetRow(rowId, out var row)
+               && string.Equals(
+                   prompt,
+                   NormalizePrompt(row.Text.ToString()),
+                   StringComparison.Ordinal
+               );
+    }
+
+    private static string NormalizePrompt(string text)
+    {
+        return string.Concat(text.Where(character => !char.IsWhiteSpace(character)));
     }
 
     private void Reset()
