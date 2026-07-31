@@ -1,0 +1,9 @@
+{
+  "modules": {
+    "telemetry": {
+      "config": {
+        "title": "Shared Map Config"
+      }
+    }
+  }
+}

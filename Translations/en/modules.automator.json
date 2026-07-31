@@ -6,6 +6,18 @@
         "enabled": {
           "tooltip": "Illegal Mode is a bot, its actions are not dictated by your config outside of this section."
         },
+        "use_northern_aethernet_routes": {
+          "label": "Use North aethernet routes",
+          "tooltip": "Compare real navmesh route lengths and use North aethernet teleportation when it is faster."
+        },
+        "return_to_northern_standby": {
+          "label": "Return to the North standby point",
+          "tooltip": "Return to the configured North standby point after a fate or critical encounter ends."
+        },
+        "northern_teleport_penalty": {
+          "label": "North teleport equivalent distance",
+          "tooltip": "The route-planning distance penalty applied to a North aethernet teleport."
+        },
         "ai_provider": {
           "label": "AI provider",
           "tooltip": "The mechanic AI provider you use"

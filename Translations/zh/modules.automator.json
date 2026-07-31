@@ -6,6 +6,18 @@
         "enabled": {
           "tooltip": "非法模式属于自动化程序，其行为仅由此部分配置决定，不受外部设置影响"
         },
+        "use_northern_aethernet_routes": {
+          "label": "使用北征魔路路线",
+          "tooltip": "比较导航网格的实际路程，并在魔路传送更快时使用魔路"
+        },
+        "return_to_northern_standby": {
+          "label": "事件结束后返回北征待机点",
+          "tooltip": "临危受命或紧急遭遇战结束后返回已设置的北征待机点"
+        },
+        "northern_teleport_penalty": {
+          "label": "北征传送等效距离",
+          "tooltip": "规划路线时，为北征魔路传送计入的等效距离惩罚"
+        },
         "ai_provider": {
           "label": "战斗插件选择",
           "tooltip": "选择所使用的战斗插件"
