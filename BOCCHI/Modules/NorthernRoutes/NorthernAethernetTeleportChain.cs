@@ -231,8 +231,19 @@ public sealed class NorthernAethernetTeleportChain(
                             return true;
                         }
 
-                        return DateTime.UtcNow - teleportRequestedAt
-                               >= ArrivalTimeout;
+                        if (DateTime.UtcNow - teleportRequestedAt
+                            < ArrivalTimeout)
+                        {
+                            return false;
+                        }
+
+                        failed = true;
+                        DebugLog.Debug(
+                            $"Northern magic route: 传送请求超时，"
+                            + $"关闭传送面板后改为直走; "
+                            + $"目标={destinationRoute.Name}"
+                        );
+                        return true;
                     },
                     new TaskManagerConfiguration
                     {
@@ -240,7 +251,18 @@ public sealed class NorthernAethernetTeleportChain(
                         ShowError = false,
                     }
                 )
-            );
+            )
+            .ConditionalThen(
+                _ => failed,
+                _ =>
+                {
+                    CloseTeleportPanels();
+                    DebugLog.Debug(
+                        "Northern magic route: 已清理传送面板，改为直走"
+                    );
+                }
+            )
+            .ConditionalWait(_ => failed, 250);
     }
 
     private static IGameObject? FindSourceObject(NorthernAethernetRoute route)
@@ -299,7 +321,24 @@ public sealed class NorthernAethernetTeleportChain(
         return addon != null
                && addon->IsVisible
                && addon->AtkValues != null
-               && addon->AtkValuesCount > 262;
+               && addon->AtkValuesCount > 0;
+    }
+
+    private static unsafe void CloseTeleportPanels()
+    {
+        var telepotTown =
+            Svc.GameGui.GetAddonByName<AtkUnitBase>("TelepotTown", 1);
+        if (telepotTown != null && telepotTown->IsVisible)
+        {
+            telepotTown->Close(true);
+        }
+
+        var selectString =
+            Svc.GameGui.GetAddonByName<AtkUnitBase>("SelectString", 1);
+        if (selectString != null && selectString->IsVisible)
+        {
+            selectString->Close(true);
+        }
     }
 
     private static unsafe bool TrySelectAethernetMenu(out string selectedEntry)
@@ -359,15 +398,20 @@ public sealed class NorthernAethernetTeleportChain(
                     sourceRoute,
                     destinationRoute,
                     out var destinationIndex
-                ))
+                )
+                && reader.CanReadDestinationCallback(destinationIndex))
             {
                 callback = reader.GetDestinationCallback(destinationIndex);
                 callbackRequired = true;
+                var visibleName =
+                    reader.CanReadDestinationName(destinationIndex)
+                        ? reader.GetDestinationName(destinationIndex)
+                        : "（名称表不可用）";
                 DebugLog.Debug(
                     $"Northern magic route: 面板顺序 "
                     + $"{destinationRoute.TeleportMenuOrder} -> "
                     + $"entry={destinationIndex}, callback={callback}, "
-                    + $"visibleName={reader.GetDestinationName(destinationIndex)}"
+                    + $"visibleName={visibleName}"
                 );
                 return DestinationSelectionState.Activated;
             }
@@ -742,9 +786,22 @@ public sealed class NorthernAethernetTeleportChain(
             return ReadSeString(262 + LayoutOffset + index)?.TextValue ?? "";
         }
 
+        public bool CanReadDestinationName(int index)
+        {
+            return index >= 0
+                   && 262 + LayoutOffset + index < addon->AtkValuesCount;
+        }
+
         public uint GetDestinationCallback(int index)
         {
             return ReadUInt(6 + LayoutOffset + index * 4 + 3) ?? 0;
+        }
+
+        public bool CanReadDestinationCallback(int index)
+        {
+            return index >= 0
+                   && 6 + LayoutOffset + index * 4 + 3
+                   < addon->AtkValuesCount;
         }
     }
 
