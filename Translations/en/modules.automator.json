@@ -6,6 +6,14 @@
         "enabled": {
           "tooltip": "Illegal Mode is a bot, its actions are not dictated by your config outside of this section."
         },
+        "auto_accept_resurrection": {
+          "label": "Automatically accept resurrection",
+          "tooltip": "Accept an incoming resurrection while Illegal Mode is enabled"
+        },
+        "auto_accept_resurrection_delay": {
+          "label": "Resurrection acceptance delay",
+          "tooltip": "Seconds to wait before accepting the resurrection prompt"
+        },
         "use_northern_aethernet_routes": {
           "label": "Use North aethernet routes",
           "tooltip": "Compare real navmesh route lengths and use North aethernet teleportation when it is faster."

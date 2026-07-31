@@ -38,6 +38,8 @@ public class AutomatorModule : Module
 
     public readonly Panel panel = new();
 
+    private readonly AutoResurrectionController autoResurrection = new();
+
     public NorthernRoutePlanner NorthernRoutePlanner { get; }
 
     public IReadOnlyDictionary<uint, string> ActiveCriticalEncounterNames
@@ -451,6 +453,8 @@ public class AutomatorModule : Module
 
     private void NorthFrameworkUpdate(IFramework framework)
     {
+        autoResurrection.Update(Config);
+
         if (!WorldObjectScanGuard.IsSafe()
             || !ZoneData.IsInNorthernExpedition()
             || !Config.Enabled)

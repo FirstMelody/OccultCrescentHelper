@@ -24,6 +24,21 @@ public class AutomatorConfig : ModuleConfig
     [Tooltip("enabled")]
     public bool Enabled { get; set; } = false;
 
+    [Checkbox]
+    [DependsOn(nameof(Enabled))]
+    [Indent]
+    public bool AutoAcceptResurrection { get; set; } = false;
+
+    public bool ShouldAutoAcceptResurrection
+    {
+        get => IsPropertyEnabled(nameof(AutoAcceptResurrection));
+    }
+
+    [FloatRange(0f, 10f)]
+    [DependsOn(nameof(AutoAcceptResurrection))]
+    [Indent]
+    public float AutoAcceptResurrectionDelay { get; set; } = 1.5f;
+
     [Enum(typeof(AiType), nameof(AiTypeProvider))]
     public AiType AiProvider { get; set; } = AiType.VBM;
 

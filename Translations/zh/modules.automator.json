@@ -6,6 +6,14 @@
         "enabled": {
           "tooltip": "非法模式属于自动化程序，其行为仅由此部分配置决定，不受外部设置影响"
         },
+        "auto_accept_resurrection": {
+          "label": "自动接受复活",
+          "tooltip": "非法模式启用时，自动接受收到的复活"
+        },
+        "auto_accept_resurrection_delay": {
+          "label": "接受复活延迟",
+          "tooltip": "检测到复活确认框后等待多少秒再接受"
+        },
         "use_northern_aethernet_routes": {
           "label": "使用北征魔路路线",
           "tooltip": "比较导航网格的实际路程，并在魔路传送更快时使用魔路"
