@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using BOCCHI.ActionHelpers;
@@ -72,9 +73,11 @@ public sealed class NorthernAethernetTeleportChain(
                     if (DateTime.UtcNow >= openDeadline)
                     {
                         failed = true;
-                        DebugLog.Debug(
+                        DebugLog.Info(
                             $"Northern magic route: 无法打开传送面板，"
-                            + $"源魔路={sourceRoute.Name}; {DescribeSourceState(sourceRoute)}"
+                            + $"源魔路={sourceRoute.Name}; "
+                            + $"{DescribeTeleportPanel()}; "
+                            + $"{DescribeSourceState(sourceRoute)}"
                         );
                         return true;
                     }
@@ -151,7 +154,7 @@ public sealed class NorthernAethernetTeleportChain(
 
                         teleportIssued = true;
                         teleportRequestedAt = DateTime.UtcNow;
-                        DebugLog.Debug(
+                        DebugLog.Info(
                             $"Northern magic route: 已按面板顺序 "
                             + $"{destinationRoute.TeleportMenuOrder} 选择 "
                             + $"{destinationRoute.Name}"
@@ -165,11 +168,12 @@ public sealed class NorthernAethernetTeleportChain(
                     }
 
                     failed = true;
-                    DebugLog.Debug(
+                    DebugLog.Info(
                         $"Northern magic route: 传送面板中未找到 "
                         + $"{destinationRoute.Name}"
                         + $"（顺序 {destinationRoute.TeleportMenuOrder}）; "
-                        + $"可见条目={DescribeVisibleDestinations()}"
+                        + $"可见条目={DescribeVisibleDestinations()}; "
+                        + $"{DescribeTeleportPanel()}"
                     );
                     return true;
                 },
@@ -238,7 +242,7 @@ public sealed class NorthernAethernetTeleportChain(
                         }
 
                         failed = true;
-                        DebugLog.Debug(
+                        DebugLog.Info(
                             $"Northern magic route: 传送请求超时，"
                             + $"关闭传送面板后改为直走; "
                             + $"目标={destinationRoute.Name}"
@@ -257,12 +261,13 @@ public sealed class NorthernAethernetTeleportChain(
                 _ =>
                 {
                     CloseTeleportPanels();
-                    DebugLog.Debug(
+                    DebugLog.Info(
                         "Northern magic route: 已清理传送面板，改为直走"
                     );
                 }
             )
-            .ConditionalWait(_ => failed, 250);
+            .ConditionalWait(_ => failed, 250)
+            .OnFinally(CloseTeleportPanels);
     }
 
     private static IGameObject? FindSourceObject(NorthernAethernetRoute route)
@@ -330,14 +335,14 @@ public sealed class NorthernAethernetTeleportChain(
             Svc.GameGui.GetAddonByName<AtkUnitBase>("TelepotTown", 1);
         if (telepotTown != null && telepotTown->IsVisible)
         {
-            telepotTown->Close(true);
+            Callback.Fire(telepotTown, true, -1);
         }
 
         var selectString =
             Svc.GameGui.GetAddonByName<AtkUnitBase>("SelectString", 1);
         if (selectString != null && selectString->IsVisible)
         {
-            selectString->Close(true);
+            Callback.Fire(selectString, true, -1);
         }
     }
 
@@ -394,7 +399,7 @@ public sealed class NorthernAethernetTeleportChain(
         {
             var reader = new TelepotTownReader(addon);
             if (TryGetDestinationIndex(
-                    reader,
+                    (int)Math.Min(reader.NumEntries, 20),
                     sourceRoute,
                     destinationRoute,
                     out var destinationIndex
@@ -402,16 +407,41 @@ public sealed class NorthernAethernetTeleportChain(
                 && reader.CanReadDestinationCallback(destinationIndex))
             {
                 callback = reader.GetDestinationCallback(destinationIndex);
+                if (callback != 0)
+                {
+                    callbackRequired = true;
+                    var visibleName =
+                        reader.CanReadDestinationName(destinationIndex)
+                            ? reader.GetDestinationName(destinationIndex)
+                            : "（名称表不可用）";
+                    DebugLog.Info(
+                        $"Northern magic route: AtkValues 顺序 "
+                        + $"{destinationRoute.TeleportMenuOrder} -> "
+                        + $"entry={destinationIndex}, callback={callback}, "
+                        + $"visibleName={visibleName}, "
+                        + $"reportedEntries={reader.NumEntries}"
+                    );
+                    return DestinationSelectionState.Activated;
+                }
+            }
+
+            if (TryGetOrderedTreeDestinationCallback(
+                    addon,
+                    sourceRoute,
+                    destinationRoute,
+                    out destinationIndex,
+                    out callback,
+                    out var treeName,
+                    out var treeEntryCount
+                ))
+            {
                 callbackRequired = true;
-                var visibleName =
-                    reader.CanReadDestinationName(destinationIndex)
-                        ? reader.GetDestinationName(destinationIndex)
-                        : "（名称表不可用）";
-                DebugLog.Debug(
-                    $"Northern magic route: 面板顺序 "
+                DebugLog.Info(
+                    $"Northern magic route: TreeList 顺序 "
                     + $"{destinationRoute.TeleportMenuOrder} -> "
                     + $"entry={destinationIndex}, callback={callback}, "
-                    + $"visibleName={visibleName}"
+                    + $"visibleName={treeName}, "
+                    + $"entries={treeEntryCount}"
                 );
                 return DestinationSelectionState.Activated;
             }
@@ -431,6 +461,12 @@ public sealed class NorthernAethernetTeleportChain(
             var count = (int)Math.Min(reader.NumEntries, 20);
             for (var index = 0; index < count; index++)
             {
+                if (!reader.CanReadDestinationName(index)
+                    || !reader.CanReadDestinationCallback(index))
+                {
+                    continue;
+                }
+
                 if (!string.Equals(
                         reader.GetDestinationName(index).Trim(),
                         destinationName.Trim(),
@@ -441,6 +477,11 @@ public sealed class NorthernAethernetTeleportChain(
                 }
 
                 callback = reader.GetDestinationCallback(index);
+                if (callback == 0)
+                {
+                    continue;
+                }
+
                 callbackRequired = true;
                 return DestinationSelectionState.Activated;
             }
@@ -451,7 +492,7 @@ public sealed class NorthernAethernetTeleportChain(
             {
                 nextPanelReadErrorLogAt =
                     DateTime.UtcNow + TimeSpan.FromSeconds(2);
-                DebugLog.Debug(
+                DebugLog.Info(
                     $"Northern magic route panel read failed: {ex.Message}"
                 );
             }
@@ -461,7 +502,7 @@ public sealed class NorthernAethernetTeleportChain(
     }
 
     private static bool TryGetDestinationIndex(
-        TelepotTownReader reader,
+        int observedEntryCount,
         NorthernAethernetRoute sourceRoute,
         NorthernAethernetRoute destinationRoute,
         out int destinationIndex
@@ -473,7 +514,6 @@ public sealed class NorthernAethernetTeleportChain(
             return false;
         }
 
-        var entryCount = (int)Math.Min(reader.NumEntries, 20);
         var knownDestinationCount =
             NorthernRouteDefaults.Routes.Count(route =>
                 route.TerritoryId == destinationRoute.TerritoryId
@@ -484,8 +524,13 @@ public sealed class NorthernAethernetTeleportChain(
         destinationIndex = destinationRoute.TeleportMenuOrder - 1;
 
         // Some aethernet panels omit the shard currently being used. The
-        // remaining rows retain their normal relative order.
-        if (entryCount == knownDestinationCount - 1
+        // remaining rows retain their normal relative order. An entry count
+        // outside the two known layouts is not trusted: JP currently renders
+        // the rows even when the AtkValues count field reports zero.
+        var trustedEntryCount =
+            observedEntryCount == knownDestinationCount
+            || observedEntryCount == knownDestinationCount - 1;
+        if (observedEntryCount == knownDestinationCount - 1
             && sourceRoute.TeleportMenuOrder > 0
             && sourceRoute.TeleportMenuOrder
             < destinationRoute.TeleportMenuOrder)
@@ -493,7 +538,75 @@ public sealed class NorthernAethernetTeleportChain(
             destinationIndex--;
         }
 
-        return destinationIndex >= 0 && destinationIndex < entryCount;
+        return destinationIndex >= 0
+               && destinationIndex < knownDestinationCount
+               && (
+                   !trustedEntryCount
+                   || destinationIndex < observedEntryCount
+               );
+    }
+
+    private static unsafe bool TryGetOrderedTreeDestinationCallback(
+        AtkUnitBase* addon,
+        NorthernAethernetRoute sourceRoute,
+        NorthernAethernetRoute destinationRoute,
+        out int destinationIndex,
+        out uint callback,
+        out string visibleName,
+        out int entryCount
+    )
+    {
+        destinationIndex = -1;
+        callback = 0;
+        visibleName = "";
+        entryCount = 0;
+
+        var tree = ((AddonTeleportTown*)addon)->List;
+        if (tree == null)
+        {
+            return false;
+        }
+
+        var candidates = new List<(string Name, uint Callback)>();
+        var itemCount = Math.Min(tree->Items.Count, 64);
+        for (var index = 0; index < itemCount; index++)
+        {
+            var item = tree->GetItem(index);
+            if (item == null
+                || item->StringValues.Count == 0
+                || item->UIntValues.Count < 4)
+            {
+                continue;
+            }
+
+            var itemCallback = item->UIntValues[3];
+            if (itemCallback == 0)
+            {
+                continue;
+            }
+
+            candidates.Add((
+                item->StringValues[0].ToString().Trim(),
+                itemCallback
+            ));
+        }
+
+        entryCount = candidates.Count;
+        if (!TryGetDestinationIndex(
+                entryCount,
+                sourceRoute,
+                destinationRoute,
+                out destinationIndex
+            )
+            || destinationIndex >= candidates.Count)
+        {
+            return false;
+        }
+
+        var candidate = candidates[destinationIndex];
+        callback = candidate.Callback;
+        visibleName = candidate.Name;
+        return callback != 0;
     }
 
     private static unsafe DestinationSelectionState TrySelectVisibleDestination(
@@ -651,6 +764,35 @@ public sealed class NorthernAethernetTeleportChain(
             + $"item={index}, callback={callback}"
         );
         return true;
+    }
+
+    private static unsafe string DescribeTeleportPanel()
+    {
+        var addon =
+            Svc.GameGui.GetAddonByName<AtkUnitBase>("TelepotTown", 1);
+        if (addon == null)
+        {
+            return "TelepotTown=null";
+        }
+
+        try
+        {
+            var hasAtkValues =
+                addon->AtkValues != null && addon->AtkValuesCount > 0;
+            var reportedEntries = hasAtkValues
+                ? new TelepotTownReader(addon).NumEntries
+                : 0;
+            var tree = ((AddonTeleportTown*)addon)->List;
+            var treeItems = tree == null ? -1 : tree->Items.Count;
+            return $"TelepotTown visible={addon->IsVisible}, "
+                   + $"AtkValuesCount={addon->AtkValuesCount}, "
+                   + $"reportedEntries={reportedEntries}, "
+                   + $"treeItems={treeItems}";
+        }
+        catch (Exception ex)
+        {
+            return $"TelepotTown diagnostic failed: {ex.Message}";
+        }
     }
 
     private static unsafe string DescribeVisibleDestinations()
