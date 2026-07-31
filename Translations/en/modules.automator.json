@@ -8,7 +8,7 @@
         },
         "auto_accept_resurrection": {
           "label": "Automatically accept resurrection",
-          "tooltip": "Accept an incoming resurrection while Illegal Mode is enabled"
+          "tooltip": "Accept an incoming resurrection when this option is enabled"
         },
         "auto_accept_resurrection_delay": {
           "label": "Resurrection acceptance delay",

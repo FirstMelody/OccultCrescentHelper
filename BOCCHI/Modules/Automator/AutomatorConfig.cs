@@ -25,13 +25,11 @@ public class AutomatorConfig : ModuleConfig
     public bool Enabled { get; set; } = false;
 
     [Checkbox]
-    [DependsOn(nameof(Enabled))]
-    [Indent]
     public bool AutoAcceptResurrection { get; set; } = false;
 
     public bool ShouldAutoAcceptResurrection
     {
-        get => IsPropertyEnabled(nameof(AutoAcceptResurrection));
+        get => AutoAcceptResurrection;
     }
 
     [FloatRange(0f, 10f)]

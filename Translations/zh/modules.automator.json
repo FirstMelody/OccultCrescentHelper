@@ -8,7 +8,7 @@
         },
         "auto_accept_resurrection": {
           "label": "自动接受复活",
-          "tooltip": "非法模式启用时，自动接受收到的复活"
+          "tooltip": "开启此选项后，自动接受收到的复活"
         },
         "auto_accept_resurrection_delay": {
           "label": "接受复活延迟",
